@@ -34,6 +34,6 @@ impl Builder {
         let config_path = self.config_path.take().ok_or(Error::MissingConfigFile)?;
         let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
 
-        todo!()
+        Ok(Bindings)
     }
 }

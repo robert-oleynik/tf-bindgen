@@ -49,7 +49,7 @@ fn main() {
 The generated bindings can be included by adding following code to your project:
 
 ```rust
-include!(concat!(env!("OUT_DIR"), "/terraform.rs"))
+include!(concat!(env!("OUT_DIR"), "/terraform.rs"));
 ```
 
 ## Roadmap
