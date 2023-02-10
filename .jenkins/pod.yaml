@@ -1,0 +1,11 @@
+metadata:
+  label:
+    project: docs-terraform-bindgen
+spec:
+  containers:
+  - name: rust
+    image: rust:1.67
+    command:
+    - sleep
+    args:
+    - 1d
