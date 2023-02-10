@@ -1,20 +1,62 @@
-# [Name]
+# terraform-bindgen
 
 <!-- Badges? -->
 
 <!-- put description here -->
 
+Generate rust code from [Terraform] providers and modules.
+
 ## Requirements
 
 <!-- Required libraries and tools -->
+- `cargo`
+- `terraform`
 
 ## Usage
 
-<!-- How to use this project -->
+### Setup terraform-bindgen
+
+`terraform-bindgen` is designed to be run as a build script (see [Cargo Reference](https://doc.rust-lang.org/cargo/reference/build-scripts.html)).
+To use `terraform-bindgen` you need to add it as a build dependency. You can do this by running `cargo add --build terraform-bindgen`
+or by modifying your `Cargo.toml`
+
+```toml
+# ...
+
+[build-dependency]
+terraform-bindgen = "0.1"
+```
+
+`terraform-bindgen` requires you to add a `build.rs` file to your project. The file will contain following
+structure:
+
+```rust
+fn main() {
+	println!("cargo:rerun-if-changed=terraform.toml")
+
+	let bindings = terraform_bindgen::Builder::default()
+		// Read terraform configuration from config file
+		.config("terraform.toml")
+		// Finish the builder and generate the bindings
+		.generate()
+		.expect("failed to generate terraform bindings");
+
+	let out_dir = PathBuf::from(std::env("OUT_DIR").unwrap());
+	bindings.write_to_file(out_path.join("terraform.rs"));
+}
+```
+
+The generated bindings can be included by adding following code to your project:
+
+```rust
+include!(concat!(env!("OUT_DIR"), "/terraform.rs"))
+```
 
 ## Roadmap
 
 <!-- Upcoming changes -->
+- [ ] generate Rust code from Terraform provider
+- [ ] generate Rust code from Terraform modules
 
 ## Contributing
 
