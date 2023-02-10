@@ -1,0 +1,7 @@
+[package]
+name = "kubernetes"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+terraform-bindgen = { path = "../../", version = "0.1.0" }

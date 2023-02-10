@@ -41,7 +41,7 @@ fn main() {
 		.generate()
 		.expect("failed to generate terraform bindings");
 
-	let out_dir = PathBuf::from(std::env("OUT_DIR").unwrap());
+	let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 	bindings.write_to_file(out_path.join("terraform.rs"));
 }
 ```
