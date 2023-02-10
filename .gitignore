@@ -1,6 +1,3 @@
 /node_modules
-
-
-# Added by cargo
-
 /target
+/examples/kubernetes/target/
