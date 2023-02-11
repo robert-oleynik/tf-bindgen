@@ -52,7 +52,7 @@ fn caret_version(version: Version, depth: usize) -> Vec<Constraint> {
 /// [`nom`] based parser for parsing [`Constraints`] structs.
 pub fn parse_constraint(input: &str) -> IResult<&str, Vec<Constraint>> {
     let whitespace = take_while(char::is_whitespace);
-    let caret_parser = verify(preceded(tag("^"), parse_version), |(wc, _, _)| !wc)
+    let caret_parser = verify(preceded(opt(tag("^")), parse_version), |(wc, _, _)| !wc)
         .map(|(_, depth, version)| caret_version(version, depth));
     let tilde_parser =
         verify(preceded(tag("~"), parse_version), |(wc, _, _)| !wc).map(|(_, depth, version)| {
@@ -335,14 +335,14 @@ mod tests {
     test_constraint!(constraint_caret_0_0, "^0.0" => >=0:0:0, < 0:1:0);
     test_constraint!(constraint_caret_0, "^0" => >=0:0:0, < 1:0:0);
 
-    test_constraint!(constraint_full, "^1.2.3" => >= 1:2:3, < 2:0:0);
-    test_constraint!(constraint_major_minor, "^1.2" => >=1:2:0, < 2:0:0);
-    test_constraint!(constraint_major, "^1" => >=1:0:0, < 2:0:0);
-    test_constraint!(constraint_beta_full, "^0.2.3" => >=0:2:3, < 0:3:0);
-    test_constraint!(constraint_beta_minor, "^0.2" => >=0:2:0, < 0:3:0);
-    test_constraint!(constraint_alpha, "^0.0.3" => >=0:0:3, < 0:0:4);
-    test_constraint!(constraint_0_0, "^0.0" => >=0:0:0, < 0:1:0);
-    test_constraint!(constraint_0, "^0" => >=0:0:0, < 1:0:0);
+    test_constraint!(constraint_full, "1.2.3" => >= 1:2:3, < 2:0:0);
+    test_constraint!(constraint_major_minor, "1.2" => >=1:2:0, < 2:0:0);
+    test_constraint!(constraint_major, "1" => >=1:0:0, < 2:0:0);
+    test_constraint!(constraint_beta_full, "0.2.3" => >=0:2:3, < 0:3:0);
+    test_constraint!(constraint_beta_minor, "0.2" => >=0:2:0, < 0:3:0);
+    test_constraint!(constraint_alpha, "0.0.3" => >=0:0:3, < 0:0:4);
+    test_constraint!(constraint_0_0, "0.0" => >=0:0:0, < 0:1:0);
+    test_constraint!(constraint_0, "0" => >=0:0:0, < 1:0:0);
 
     test_constraint!(constraint_tilde_full, "~1.2.3" => >= 1:2:3, < 1:3:0);
     test_constraint!(constraint_tilde_major_minor, "~1.2" => >= 1:2:0, < 1:3:0);
