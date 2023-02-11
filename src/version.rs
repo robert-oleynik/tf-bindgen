@@ -36,7 +36,12 @@ fn caret_version(version: Version, depth: usize) -> Vec<Constraint> {
     } else if version.minor >= 1 {
         version.next_minor()
     } else {
-        version.next_patch()
+        match depth {
+            1 => version.next_major(),
+            2 => version.next_minor(),
+            3 => version.next_patch(),
+            _ => unreachable!(),
+        }
     };
     vec![
         Constraint::GreaterEquals(version),
@@ -147,6 +152,8 @@ impl Version {
     /// # Example
     ///
     /// ```rust
+    /// use terraform_bindgen::version::Version;
+    ///
     /// let version = Version::new(1, 2, 3);
     /// let next = version.next_major();
     /// assert_eq!(next.major(), 2);
@@ -166,6 +173,8 @@ impl Version {
     /// # Example
     ///
     /// ```rust
+    /// use terraform_bindgen::version::Version;
+    ///
     /// let version = Version::new(1, 2, 3);
     /// let next = version.next_minor();
     /// assert_eq!(next.major(), 1);
@@ -185,6 +194,8 @@ impl Version {
     /// # Example
     ///
     /// ```rust
+    /// use terraform_bindgen::version::Version;
+    ///
     /// let version = Version::new(1, 2, 3);
     /// let next = version.next_patch();
     /// assert_eq!(next.major(), 1);
