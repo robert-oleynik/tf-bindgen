@@ -1,6 +1,7 @@
 // TODO
 mod builder;
 mod config;
+mod version;
 
 use std::path::Path;
 
