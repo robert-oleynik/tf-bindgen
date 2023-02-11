@@ -1,11 +1,29 @@
-use std::num::ParseIntError;
+use nom::bytes::complete::take_while1;
+use nom::combinator::{eof, map_res, opt};
+use nom::error::ErrorKind;
+use nom::multi::separated_list1;
+use nom::sequence::Tuple;
+use nom::Parser;
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Version has to many chunks. Expexted at max 3, but got {0}")]
-    ToManyChunks(usize),
-    #[error("{0}")]
-    ParseVersionChunk(#[from] ParseIntError),
+use nom::{bytes::complete::tag, IResult};
+
+fn parse_version(input: &str) -> IResult<&str, (bool, usize, Option<usize>, Option<usize>)> {
+    let read_number = take_while1(|c: char| c.is_digit(10));
+    let parse_number = map_res(read_number, |s: &str| s.parse::<usize>());
+    let version_chunks = separated_list1(tag("."), parse_number);
+    let wildchar = opt(tag(".").and(tag("*")));
+    let (o, (chunks, wc, _)) = (version_chunks, wildchar, eof).parse(input)?;
+    if chunks.len() > 3 {
+        let error = nom::error::Error::new(input, ErrorKind::Eof);
+        return Err(nom::Err::Error(error));
+    }
+    let result = (
+        wc.is_some(),
+        chunks[0],
+        chunks.get(1).cloned(),
+        chunks.get(2).cloned(),
+    );
+    Ok((o, result))
 }
 
 pub struct Version {
@@ -20,32 +38,29 @@ pub enum Constraint {
 }
 
 impl Version {
-    /// Parse version with `<major>.<minor>.<patch>` format
-    pub fn parse(version: &str) -> Result<Version, Error> {
-        let chunks: Vec<_> = version.split(".").collect();
-        if chunks.len() > 3 {
-            return Err(Error::ToManyChunks(chunks.len()));
-        }
-        let major_chunk = chunks[0];
-        let minor_chunk = chunks.get(1).map(|minor| *minor);
-        let patch_chunk = chunks.get(2).map(|minor| *minor);
+    pub const MIN: Version = Version {
+        major: 0,
+        minor: 0,
+        patch: 0,
+    };
+    pub const MAX: Version = Version {
+        major: usize::MAX,
+        minor: usize::MAX,
+        patch: usize::MAX,
+    };
 
-        let major: usize = major_chunk.parse()?;
-        let minor = match minor_chunk {
-            Some("*") => 0,
-            Some(num) => num.parse()?,
-            None => 0,
-        };
-        let patch = match patch_chunk {
-            Some("*") => 0,
-            Some(num) => num.parse()?,
-            None => 0,
-        };
-
-        Ok(Version {
+    /// Parse version with `<major>.<minor>.<patch>` format. Will use [`nom`] to parse the version
+    /// information.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to parsed version string
+    pub fn parse(version: &str) -> Result<Self, nom::Err<nom::error::Error<&str>>> {
+        let (_, (_, major, minor, patch)) = parse_version(version)?;
+        Ok(Self {
             major,
-            minor,
-            patch,
+            minor: minor.unwrap_or(0),
+            patch: patch.unwrap_or(0),
         })
     }
 }
@@ -58,7 +73,7 @@ impl Constraint {
     /// # Errors
     ///
     /// Will return `Err` if failed to parse version constraints.
-    pub fn parse(version: &str) -> Result<Constraint, Error> {
+    pub fn parse(version: &str) -> Result<Self, nom::Err<nom::error::Error<&str>>> {
         todo!()
     }
 }
@@ -69,9 +84,13 @@ mod tests {
 
     macro_rules! assert_version {
         ($version:ident, $major:expr,$minor:expr,$patch:expr) => {
-            assert_eq!($version.major, $major);
-            assert_eq!($version.minor, $minor);
-            assert_eq!($version.patch, $patch);
+            let msg = format!(
+                "expected {}.{}.{} but got {}.{}.{}",
+                $major, $minor, $patch, $version.major, $version.minor, $version.patch
+            );
+            assert_eq!($major, $version.major, "{msg}");
+            assert_eq!($minor, $version.minor, "{msg}");
+            assert_eq!($patch, $version.patch, "{msg}");
         };
     }
 
@@ -107,6 +126,12 @@ mod tests {
     test_version!(version_major, "1" => 1,0,0);
     test_version!(version_major_minor_wildchar, "1.2.*" => 1,2,0);
     test_version!(version_major_wildchar, "1.*" => 1,0,0);
+
+    #[test]
+    pub fn version_extra() {
+        let version = Version::parse("1.2.3.4");
+        assert!(version.is_err())
+    }
 
     test_constraint!(constraint_caret_full, "^1.2.3" => [1,2,3; 2,0,0]);
     test_constraint!(constraint_caret_major_minor, "^1.2" => [1,2,0; 2,0,0]);

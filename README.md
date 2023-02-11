@@ -32,7 +32,7 @@ structure:
 
 ```rust
 fn main() {
-	println!("cargo:rerun-if-changed=terraform.toml")
+	println!("cargo:rerun-if-changed=terraform.toml");
 
 	let bindings = terraform_bindgen::Builder::default()
 		// Read terraform configuration from config file
