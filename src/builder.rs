@@ -6,6 +6,8 @@ pub enum Error {
     MissingConfigFile,
     #[error("Failed to parse config {1}. Reason: {0}")]
     Config(crate::config::Error, String),
+    #[error("invalid version format: {0}")]
+    Version(String),
 }
 
 #[derive(Default)]
@@ -33,6 +35,8 @@ impl Builder {
     pub fn generate(&mut self) -> Result<Bindings, Error> {
         let config_path = self.config_path.take().ok_or(Error::MissingConfigFile)?;
         let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
+
+        let providers = cfg.providers().map_err(|err| Error::Version(err))?;
 
         Ok(Bindings)
     }
