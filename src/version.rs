@@ -61,8 +61,28 @@ pub fn parse_constraint(input: &str) -> IResult<&str, Vec<Constraint>> {
                 Constraint::LessThan(upper),
             ]
         });
+    let wildchar1_parser = verify(parse_version, |(wc, _, _)| *wc).map(|(_, depth, version)| {
+        let upper = match depth {
+            1 => version.next_major(),
+            2 => version.next_minor(),
+            _ => unreachable!(),
+        };
+        vec![
+            Constraint::GreaterEquals(version),
+            Constraint::LessThan(upper),
+        ]
+    });
+    let wildchar2_parser = tag("*").map(|_| {
+        vec![
+            Constraint::GreaterEquals(Version::MIN),
+            Constraint::LessThan(Version::MAX),
+        ]
+    });
 
-    let constraint_param = caret_parser.or(tilde_parser);
+    let constraint_param = tilde_parser
+        .or(wildchar2_parser)
+        .or(wildchar1_parser)
+        .or(caret_parser);
     let parser = separated_list1(tag(","), whitespace.and(constraint_param)).map(|constraints| {
         constraints
             .into_iter()
@@ -73,7 +93,7 @@ pub fn parse_constraint(input: &str) -> IResult<&str, Vec<Constraint>> {
     Ok(("", constraints))
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Version {
     major: usize,
     minor: usize,
@@ -82,6 +102,7 @@ pub struct Version {
 
 pub type Constraints = Vec<Constraint>;
 
+#[derive(Clone, Debug)]
 pub enum Constraint {
     LessThan(Version),
     GreaterThan(Version),
@@ -316,7 +337,22 @@ mod tests {
     test_constraint!(constraint_tilde_major_minor, "~1.2" => >= 1:2:0, < 1:3:0);
     test_constraint!(constraint_tilde_major, "~1" => >= 1:0:0, < 2:0:0);
 
-    test_constraint!(constraint_wildchar_major_minor, "1.2.*" => >= 1:2:3, < 1:3:0);
-    test_constraint!(constraint_wildchar_major, "1.`*" => >= 1:2:0, < 1:3:0);
-    test_constraint!(constraint_wildchar, "*" => >= 1:0:0, < 2:0:0);
+    test_constraint!(constraint_wildchar_major_minor, "1.2.*" => >= 1:2:0, < 1:3:0);
+    test_constraint!(constraint_wildchar_major, "1.*" => >= 1:0:0, < 2:0:0);
+
+    #[test]
+    pub fn constraint_wildchar() {
+        let constraint = Constraint::parse("*").unwrap();
+        assert_eq!(2, constraint.len());
+        if let Constraint::GreaterEquals(version) = &constraint[0] {
+            assert_eq!(Version::MIN, *version)
+        } else {
+            unimplemented!()
+        }
+        if let Constraint::LessThan(version) = &constraint[1] {
+            assert_eq!(Version::MAX, *version)
+        } else {
+            unimplemented!()
+        }
+    }
 }
