@@ -1,4 +1,6 @@
-use crate::{config::Config, Bindings};
+use crate::config::Config;
+use crate::generator::terraform::{self, Generator};
+use crate::Bindings;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -8,6 +10,8 @@ pub enum Error {
     Config(crate::config::Error, String),
     #[error("invalid version format: {0}")]
     Version(String),
+    #[error("{0}")]
+    Generator(#[from] terraform::Error),
 }
 
 #[derive(Default)]
@@ -36,8 +40,10 @@ impl Builder {
         let config_path = self.config_path.take().ok_or(Error::MissingConfigFile)?;
         let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
 
-        let providers = cfg.providers().map_err(|err| Error::Version(err))?;
+        let document = Generator::default()
+            .providers(cfg.providers().map_err(|err| Error::Version(err))?)
+            .generate(std::env::var("OUT_DIR").unwrap())?;
 
-        Ok(Bindings)
+        Ok(Bindings { document })
     }
 }
