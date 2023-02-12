@@ -40,10 +40,10 @@ impl Builder {
         let config_path = self.config_path.take().ok_or(Error::MissingConfigFile)?;
         let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
 
-        let document = Generator::default()
+        let schema = Generator::default()
             .providers(cfg.providers().map_err(|err| Error::Version(err))?)
             .generate(std::env::var("OUT_DIR").unwrap())?;
 
-        Ok(Bindings { document })
+        Ok(Bindings { schema })
     }
 }

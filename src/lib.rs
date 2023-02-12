@@ -7,14 +7,16 @@ pub mod version;
 
 use std::path::Path;
 
+use model::provider::Schema;
+
 pub use crate::builder::Builder;
 
 pub struct Bindings {
-    document: model::Document,
+    schema: Schema,
 }
 
 impl Bindings {
     pub fn write_to_file(&self, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
-        todo!("{:#?}", self.document)
+        todo!("schema = {:#?}", self.schema)
     }
 }

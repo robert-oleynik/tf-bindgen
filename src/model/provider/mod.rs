@@ -6,13 +6,13 @@ pub mod attribute;
 
 pub use attribute::Attribute;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Schema {
     pub providers: ProviderSchema,
     pub modules: ModuleSchema,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "format_version")]
 pub enum ProviderSchema {
     #[serde(rename = "0.2")]
@@ -22,29 +22,29 @@ pub enum ProviderSchema {
     },
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ModuleSchema {}
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Provider {
     pub provider: BlockSchema,
     pub resource_schemas: HashMap<String, BlockSchema>,
     pub data_source_schemas: HashMap<String, BlockSchema>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BlockSchema {
     version: usize,
     block: Block,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Block {
     attributes: HashMap<String, Attribute>,
     block_types: HashMap<String, Type>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "nested_mode")]
 pub enum Type {
     #[serde(rename = "single", alias = "map")]

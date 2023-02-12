@@ -4,7 +4,7 @@ use serde::de::Unexpected;
 use serde::ser::{SerializeMap, SerializeTuple};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Attribute {
     Type {
@@ -25,13 +25,13 @@ pub enum Attribute {
     },
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NestedType {
     attributes: HashMap<String, Attribute>,
     nesting_mode: NestedTypeNesting,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Type {
     String,
     Bool,
@@ -43,6 +43,7 @@ pub enum Type {
     Object(HashMap<String, Type>),
 }
 
+#[derive(Debug)]
 pub enum NestedTypeNesting {
     Invalid,
     Single,

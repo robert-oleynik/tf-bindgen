@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::dependency::Dependency;
+use crate::model::provider::Schema;
 use crate::model::{self, Document};
 
 #[derive(Debug, thiserror::Error)]
@@ -14,6 +15,8 @@ pub enum Error {
     FailedCreateMain(std::io::Error),
     #[error("failed to initialize Terraform")]
     FailedInitTerraform(std::io::Error),
+    #[error("failed to parse Terraform schema")]
+    InvalidSchema(#[from] serde_json::Error),
 }
 
 /// Generates Terraform projects for given providers.
@@ -30,7 +33,7 @@ impl Generator {
     }
 
     /// Generate Terraform project.
-    pub fn generate(self, out_dir: impl AsRef<Path>) -> Result<Document, Error> {
+    pub fn generate(self, out_dir: impl AsRef<Path>) -> Result<Schema, Error> {
         let terraform_dir = out_dir.as_ref().join("terraform");
         std::fs::create_dir_all(&terraform_dir).map_err(Error::FailedTerraformDir)?;
         let main_file = terraform_dir.join("main.tf.json");
@@ -69,7 +72,6 @@ impl Generator {
             print!("{}", String::from_utf8(tf_process.stderr).unwrap());
             panic!("failed to read Terraform provider information")
         }
-
-        todo!();
+        Ok(serde_json::from_slice(&tf_process.stdout[..])?)
     }
 }
