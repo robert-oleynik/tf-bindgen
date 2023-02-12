@@ -41,7 +41,7 @@ impl Builder {
         let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
 
         let schema = Generator::default()
-            .providers(cfg.providers().map_err(|err| Error::Version(err))?)
+            .providers(cfg.providers().map_err(Error::Version)?)
             .generate(std::env::var("OUT_DIR").unwrap())?;
 
         Ok(Bindings { schema })

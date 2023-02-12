@@ -65,19 +65,19 @@ impl Serialize for Type {
             Type::Set(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("set")?;
-                tup.serialize_element(&*inner)?;
+                tup.serialize_element(inner)?;
                 tup.end()
             }
             Type::List(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("list")?;
-                tup.serialize_element(&*inner)?;
+                tup.serialize_element(inner)?;
                 tup.end()
             }
             Type::Map(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("map")?;
-                tup.serialize_element(&*inner)?;
+                tup.serialize_element(inner)?;
                 tup.end()
             }
             Type::Object(fields) => {
@@ -116,6 +116,13 @@ impl<'de> Deserialize<'de> for Type {
                     "dynamic" => Type::Dynamic,
                     _ => return Err(serde::de::Error::invalid_value(Unexpected::Str(v), &self)),
                 })
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_borrowed_str(v)
             }
 
             fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
@@ -198,8 +205,15 @@ impl<'de> Deserialize<'de> for NestedTypeNesting {
                     "list" => NestedTypeNesting::List,
                     "set" => NestedTypeNesting::Set,
                     "map" => NestedTypeNesting::Map,
-                    _ => return Err(serde::de::Error::invalid_value(Unexpected::Str(&v), &self)),
+                    _ => return Err(serde::de::Error::invalid_value(Unexpected::Str(v), &self)),
                 })
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_borrowed_str(v)
             }
 
             fn visit_string<E>(self, v: String) -> Result<Self::Value, E>

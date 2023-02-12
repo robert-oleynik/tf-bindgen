@@ -12,7 +12,7 @@ use nom::{bytes::complete::tag, IResult};
 
 /// [`nom`] based parser for parsing [`Version`] struct.
 pub fn parse_version(input: &str) -> IResult<&str, (bool, usize, Version)> {
-    let read_number = take_while1(|c: char| c.is_digit(10));
+    let read_number = take_while1(|ch: char| ch.is_ascii_digit());
     let parse_number = map_res(read_number, |s: &str| s.parse::<usize>());
     let version_chunks = separated_list1(tag("."), parse_number);
     let wildchar = opt(tag(".").and(tag("*")));
