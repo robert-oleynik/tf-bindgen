@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use nom::branch::alt;
 use nom::bytes::complete::{take_while, take_while1};
 use nom::combinator::{eof, map_res, opt, verify};
@@ -249,6 +251,28 @@ impl Constraint {
     pub fn parse(version: &str) -> Result<Vec<Constraint>, nom::Err<nom::error::Error<&str>>> {
         let (_, constraints) = parse_constraint(version)?;
         Ok(constraints)
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.major.to_string())?;
+        f.write_str(".")?;
+        f.write_str(&self.minor.to_string())?;
+        f.write_str(".")?;
+        f.write_str(&self.patch.to_string())
+    }
+}
+
+impl Display for Constraint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Constraint::LessThan(v) => f.write_fmt(format_args!("<{v}")),
+            Constraint::GreaterThan(v) => f.write_fmt(format_args!(">{v}")),
+            Constraint::Equals(v) => f.write_fmt(format_args!("={v}")),
+            Constraint::LessEquals(v) => f.write_fmt(format_args!("<={v}")),
+            Constraint::GreaterEquals(v) => f.write_fmt(format_args!(">={v}")),
+        }
     }
 }
 
