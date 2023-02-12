@@ -1,3 +1,4 @@
+use nom::branch::alt;
 use nom::bytes::complete::{take_while, take_while1};
 use nom::combinator::{eof, map_res, opt, verify};
 use nom::error::ErrorKind;
@@ -83,10 +84,26 @@ pub fn parse_constraint(input: &str) -> IResult<&str, Vec<Constraint>> {
             Constraint::LessThan(Version::MAX),
         ]
     });
+    let compare = verify(
+        alt((tag(">="), tag("<="), tag("="), tag(">"), tag("<")))
+            .and(take_while(char::is_whitespace))
+            .and(parse_version),
+        |(_, (wc, _, _))| !wc,
+    )
+    .map(|((tag, _), (_, _, version))| match tag {
+        ">=" => Constraint::GreaterEquals(version),
+        "<=" => Constraint::LessEquals(version),
+        "=" => Constraint::Equals(version),
+        ">" => Constraint::GreaterThan(version),
+        "<" => Constraint::LessThan(version),
+        _ => unreachable!(),
+    })
+    .map(|constraint| vec![constraint]);
 
     let constraint_param = tilde_parser
         .or(wildchar2_parser)
         .or(wildchar1_parser)
+        .or(compare)
         .or(caret_parser);
     let parser = separated_list1(tag(","), whitespace.and(constraint_param)).map(|constraints| {
         constraints
@@ -350,6 +367,15 @@ mod tests {
 
     test_constraint!(constraint_wildchar_major_minor, "1.2.*" => >= 1:2:0, < 1:3:0);
     test_constraint!(constraint_wildchar_major, "1.*" => >= 1:0:0, < 2:0:0);
+
+    test_constraint!(constraint_equals, "=1.2.3" => =1:2:3);
+    test_constraint!(constraint_greater_than, ">1.2.3" => >1:2:3);
+    test_constraint!(constraint_greater_equals, ">=1.2.3" => >=1:2:3);
+    test_constraint!(constraint_less_than, "<1.2.3" => <1:2:3);
+    test_constraint!(constraint_less_equals, "<=1.2.3" => <=1:2:3);
+
+    test_constraint!(constraint_multi, ">=1.2.3, <2.0.0" => >=1:2:3, <2:0:0);
+    test_constraint!(constraint_whitespace, ">= 1.2.3" => >=1:2:3);
 
     #[test]
     pub fn constraint_wildchar() {
