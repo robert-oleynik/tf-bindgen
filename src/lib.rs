@@ -7,12 +7,12 @@ pub mod version;
 
 use std::path::Path;
 
-use model::provider::Schema;
+use model::provider::ProviderSchema;
 
 pub use crate::builder::Builder;
 
 pub struct Bindings {
-    schema: Schema,
+    schema: ProviderSchema,
 }
 
 impl Bindings {

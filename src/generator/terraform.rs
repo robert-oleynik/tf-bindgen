@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::dependency::Dependency;
-use crate::model::provider::Schema;
+use crate::model::provider::ProviderSchema;
 use crate::model::{self, Document};
 
 #[derive(Debug, thiserror::Error)]
@@ -33,7 +33,7 @@ impl Generator {
     }
 
     /// Generate Terraform project.
-    pub fn generate(self, out_dir: impl AsRef<Path>) -> Result<Schema, Error> {
+    pub fn generate(self, out_dir: impl AsRef<Path>) -> Result<ProviderSchema, Error> {
         let terraform_dir = out_dir.as_ref().join("terraform");
         std::fs::create_dir_all(&terraform_dir).map_err(Error::FailedTerraformDir)?;
         let main_file = terraform_dir.join("main.tf.json");
