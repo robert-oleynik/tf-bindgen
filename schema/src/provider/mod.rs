@@ -7,14 +7,8 @@ pub mod attribute;
 pub use attribute::Attribute;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Schema {
-    pub providers: ProviderSchema,
-    pub modules: ModuleSchema,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "format_version")]
-pub enum ProviderSchema {
+pub enum Schema {
     #[serde(rename = "1.0")]
     V1_0 {
         provider_schemas: Option<HashMap<String, Provider>>,
@@ -23,9 +17,6 @@ pub enum ProviderSchema {
     #[serde(other)]
     Unknown,
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ModuleSchema {}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Provider {

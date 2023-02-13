@@ -143,8 +143,17 @@ dependencies = [
  "nom",
  "serde",
  "serde_json",
+ "terraform-schema",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "terraform-schema"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

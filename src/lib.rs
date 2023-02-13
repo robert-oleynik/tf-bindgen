@@ -7,12 +7,12 @@ pub mod version;
 
 use std::path::Path;
 
-use model::provider::ProviderSchema;
+use terraform_schema::provider;
 
 pub use crate::builder::Builder;
 
 pub struct Bindings {
-    schema: ProviderSchema,
+    schema: provider::Schema,
 }
 
 impl Bindings {

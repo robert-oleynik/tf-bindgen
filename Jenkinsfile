@@ -9,7 +9,7 @@ pipeline {
 			steps {
 				container('rust') {
 					sh 'rustup component add rustfmt'
-					sh 'cargo fmt --check'
+					sh 'cargo fmt --check --all'
 				}
 			}
 		}
@@ -17,21 +17,21 @@ pipeline {
 			steps {
 				container('rust') {
 					sh 'rustup component add clippy'
-					sh 'cargo clippy'
+					sh 'cargo clippy --workspace'
 				}
 			}
 		}
 		stage('Build') {
 			steps {
 				container('rust') {
-					sh 'cargo build'
+					sh 'cargo build --workspace'
 				}
 			}
 		}
 		stage('Test') {
 			steps {
 				container('rust') {
-					sh 'cargo test'
+					sh 'cargo test --workspace'
 				}
 			}
 		}
