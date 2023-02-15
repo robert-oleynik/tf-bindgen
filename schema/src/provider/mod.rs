@@ -27,14 +27,14 @@ pub struct Provider {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BlockSchema {
-    version: usize,
-    block: Block,
+    pub version: usize,
+    pub block: Block,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Block {
-    attributes: Option<HashMap<String, Attribute>>,
-    block_types: Option<HashMap<String, Type>>,
+    pub attributes: Option<HashMap<String, Attribute>>,
+    pub block_types: Option<HashMap<String, Type>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

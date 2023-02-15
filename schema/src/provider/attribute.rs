@@ -27,8 +27,8 @@ pub enum Attribute {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NestedType {
-    attributes: HashMap<String, Attribute>,
-    nesting_mode: NestedTypeNesting,
+    pub attributes: HashMap<String, Attribute>,
+    pub nesting_mode: NestedTypeNesting,
 }
 
 #[derive(Debug, Clone)]
