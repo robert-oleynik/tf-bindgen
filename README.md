@@ -56,6 +56,8 @@ include!(concat!(env!("OUT_DIR"), "/terraform.rs"));
 
 <!-- Upcoming changes -->
 - [ ] generate Rust code from Terraform provider
+	- [ ] implement data blocks
+	- [ ] implement resource blocks
 - [ ] generate Rust code from Terraform modules
 
 ## Contributing
