@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::generator::terraform::{self, Generator};
+use crate::generator::schema::{self, Generator};
 use crate::Bindings;
 
 #[derive(thiserror::Error, Debug)]
@@ -11,7 +11,7 @@ pub enum Error {
     #[error("invalid version format: {0}")]
     Version(String),
     #[error("{0}")]
-    Generator(#[from] terraform::Error),
+    Generator(#[from] schema::Error),
 }
 
 #[derive(Default)]
@@ -26,9 +26,7 @@ impl Builder {
     ///
     /// ```toml
     /// [terraform]
-    /// providers = [
-    ///		"kubernetes@2.17.0"
-    /// ]
+    /// kubernetes = "2.17.0"
     /// ```
     pub fn config(&mut self, path: impl Into<String>) -> &mut Self {
         self.config_path = Some(path.into());

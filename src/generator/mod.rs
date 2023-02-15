@@ -1,1 +1,1 @@
-pub mod terraform;
+pub mod schema;
