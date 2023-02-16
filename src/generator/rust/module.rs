@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use heck::ToUpperCamelCase;
-use terraform_schema::provider::{attribute::Type, BlockSchema, Provider};
+use terraform_schema::provider::{attribute::Type, Block, BlockSchema, Provider};
 
 use super::r#struct::Struct;
 
@@ -19,20 +19,20 @@ impl Module {
             .last()
             .map(ToString::to_string)
             .unwrap();
-        let mut structs = vec![Struct::from_schema("Provider", &schema.provider)];
-        structs.extend(unwrap_structs("Provider", &schema.provider));
+        let mut structs = vec![Struct::from_schema("Provider", &schema.provider.block)];
+        structs.extend(unwrap_structs("Provider", &schema.provider.block));
         if let Some(resources) = &schema.resource_schemas {
             let iter = resources.iter().flat_map(|(name, schema)| {
                 let name = name.to_upper_camel_case();
-                let st = Struct::from_schema(&name, schema);
-                let mut structs = unwrap_structs(&name, schema);
+                let st = Struct::from_schema(&name, &schema.block);
+                let mut structs = unwrap_structs(&name, &schema.block);
                 structs.push(st);
                 structs
             });
             structs.extend(iter);
         }
         if let Some(data_sources) = &schema.data_source_schemas {
-            todo!("{data_sources:#?}")
+            // todo!("{data_sources:#?}")
         }
         Module {
             name: name.into(),
@@ -68,9 +68,9 @@ fn unwrap_structs_from_mapping(prefix: &str, mapping: &HashMap<String, Type>) ->
         .collect()
 }
 
-fn unwrap_structs(prefix: &str, schema: &BlockSchema) -> Vec<Struct> {
+fn unwrap_structs(prefix: &str, schema: &Block) -> Vec<Struct> {
     let mut structs = Vec::new();
-    if let Some(attributes) = &schema.block.attributes {
+    if let Some(attributes) = &schema.attributes {
         let iter = attributes
             .iter()
             .filter_map(|(name, attr)| match attr {
@@ -90,8 +90,21 @@ fn unwrap_structs(prefix: &str, schema: &BlockSchema) -> Vec<Struct> {
             .flat_map(|structs| structs);
         structs.extend(iter);
     }
-    if let Some(block) = &schema.block.block_types {
-        todo!("{block:#?}")
+    if let Some(blocks) = &schema.block_types {
+        let iter = blocks
+            .iter()
+            .map(|(name, ty)| match ty {
+                terraform_schema::provider::Type::Single { block } => (name, block),
+                terraform_schema::provider::Type::List { block, .. } => (name, block),
+            })
+            .flat_map(|(name, block)| {
+                let name = format!("{prefix}{}", name.to_upper_camel_case());
+                let mut mappings = unwrap_structs(&name, block);
+                let st = Struct::from_schema(&name, block);
+                mappings.push(st);
+                mappings
+            });
+        structs.extend(iter);
     }
     structs
 }
