@@ -16,7 +16,8 @@ pub struct Bindings {
 }
 
 impl Bindings {
-    pub fn write_to_file(&self, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
-        todo!("schema = {:#?}", self.schema)
+    pub fn write_to_file(self, path: impl AsRef<Path>) -> std::io::Result<()> {
+        println!("{:#?}", self.schema);
+        generator::rust::Rust::from_schema(&self.schema).generate(path)
     }
 }
