@@ -149,6 +149,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "terraform-bindgen-core"
+version = "0.1.0"
+dependencies = [
+ "terraform-schema",
+]
+
+[[package]]
 name = "terraform-schema"
 version = "0.1.0"
 dependencies = [
