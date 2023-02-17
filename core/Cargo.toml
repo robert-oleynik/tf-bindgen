@@ -5,4 +5,5 @@ edition = "2021"
 description = "Traits and structs utilized by terraform-bindgen generated structures"
 
 [dependencies]
+serde_json = "1.0.93"
 terraform-schema = { path="../schema", version="0.1.0" }

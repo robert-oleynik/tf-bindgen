@@ -41,6 +41,7 @@ name = "kubernetes"
 version = "0.1.0"
 dependencies = [
  "terraform-bindgen",
+ "terraform-bindgen-core",
 ]
 
 [[package]]
@@ -160,6 +161,14 @@ dependencies = [
  "terraform-schema",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "terraform-bindgen-core"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "terraform-schema",
 ]
 
 [[package]]
