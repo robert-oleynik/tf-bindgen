@@ -1,6 +1,6 @@
 use heck::ToUpperCamelCase;
 use terraform_schema::provider::attribute::{NestedType, Type};
-use terraform_schema::provider::{Attribute, Block};
+use terraform_schema::provider::{self, Attribute, Block};
 
 /// Generate all structs necessary from a given Terraform [`Block`] schema.
 pub fn generate_structs_from_block(name: &str, schema: &Block) -> String {
@@ -29,8 +29,17 @@ fn tf_block_to_rust_struct(name: &str, schema: &Block) -> String {
             .map(|(name, ty, opt)| format!("{name}: {},\n", wrap_optional(ty, opt)))
             .collect::<String>();
     }
-    if let Some(_blocks) = &schema.block_types {
-        todo!()
+    if let Some(blocks) = &schema.block_types {
+        result += &blocks
+            .iter()
+            .map(|(bname, ty)| (bname, bname.to_upper_camel_case(), ty))
+            .map(|(n, bname, ty)| match ty {
+                provider::Type::Single { .. } => format!("{n}: {name}{bname}\n"),
+                provider::Type::List { .. } => {
+                    format!("{n}: ::std::vec::Vec<{name}{bname}>,\n")
+                }
+            })
+            .collect::<String>();
     }
     result + "}"
 }
@@ -42,7 +51,7 @@ fn to_rust_type(prefix: &str, name: &str, ty: &Type) -> String {
         Type::String => "String".to_string(),
         Type::Bool => "bool".to_string(),
         Type::Number => "isize".to_string(),
-        Type::Dynamic => todo!(),
+        Type::Dynamic => "::terraform_bindgen_core::json::Value".to_string(),
         Type::Set(ty) => format!(
             "::std::collections::HashSet<{}>",
             to_rust_type(prefix, name, ty)

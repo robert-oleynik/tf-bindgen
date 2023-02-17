@@ -39,14 +39,17 @@ fn generate_rust_module(name: &str, schema: &Provider) -> String {
 fn generate_structs(schema: &Provider) -> String {
     let mut result = String::new();
     if let Some(resources) = &schema.resource_schemas {
-        let res: String = resources
+        result += &resources
             .iter()
             .map(|(name, schema)| generate_structs_from_block(name, &schema.block))
             .fold(String::new(), |text, st| text + &st + "\n");
-        result += &res
     }
-    if let Some(_data_sources) = &schema.data_source_schemas {
-        todo!()
+    if let Some(data_sources) = &schema.data_source_schemas {
+        result += &data_sources
+            .iter()
+            .map(|(name, schema)| generate_structs_from_block(name, &schema.block))
+            .fold(String::new(), |text, st| text + &st + "\n");
+        // todo!()
     }
     result
 }
