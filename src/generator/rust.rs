@@ -1,46 +1,57 @@
-use std::path::Path;
+mod block;
 
-mod field;
-mod module;
-mod r#struct;
+use heck::ToUpperCamelCase;
+use terraform_schema::provider::{Provider, Schema};
 
-use module::Module;
-use terraform_schema::provider::Schema;
+use self::block::generate_structs_from_block;
 
-/// Generator used to generate rust code from Terraform schema.
-pub struct Rust {
-    modules: Vec<Module>,
+/// Generate rust source code from Terraform provider schema.
+pub fn generate_rust_code_from_schema(schema: &Schema) -> String {
+    match schema {
+        Schema::V1_0 {
+            provider_schemas,
+            provider_versions: _,
+        } => {
+            let mut result = String::new();
+            if let Some(schemas) = provider_schemas {
+                result += &schemas
+                    .iter()
+                    .map(|(name, schema)| generate_rust_module(name, schema))
+                    .fold(String::new(), |text, module| text + &module + "\n")
+            }
+            result
+        }
+        Schema::Unknown => unimplemented!("only schema version 1.0 supported"),
+    }
 }
 
-impl Rust {
-    /// Parse rust structures from Terraform [`Schema`].
-    pub fn from_schema(schema: &Schema) -> Self {
-        let modules = match schema {
-            Schema::V1_0 {
-                provider_schemas, ..
-            } => {
-                let mut modules = Vec::new();
-                if let Some(schemas) = provider_schemas {
-                    let iter = schemas
-                        .iter()
-                        .map(|(name, provider)| Module::from_schema(name, provider));
-                    modules.extend(iter);
-                }
-                modules
-            }
-            Schema::Unknown => {
-                unimplemented!("Unknown schema format. Only version 1.0 is supported")
-            }
-        };
-        Self { modules }
-    }
+fn generate_rust_module(name: &str, schema: &Provider) -> String {
+    let name = name
+        .split("/")
+        .last()
+        .map(ToUpperCamelCase::to_upper_camel_case)
+        .unwrap();
+    let structs = generate_structs(schema);
+    let impls = generate_impls(schema);
+    format!("pub mod {name} {{\n{structs}\n{impls}\n}}")
+}
 
-    pub fn generate(self, path: impl AsRef<Path>) -> std::io::Result<()> {
-        let code = self
-            .modules
+fn generate_structs(schema: &Provider) -> String {
+    let mut result = String::new();
+    if let Some(resources) = &schema.resource_schemas {
+        let res: String = resources
             .iter()
-            .map(Module::to_rust_module)
-            .fold(String::new(), |text, m| text + &m + "\n");
-        std::fs::write(path, code)
+            .map(|(name, schema)| generate_structs_from_block(name, &schema.block))
+            .fold(String::new(), |text, st| text + &st + "\n");
+        result += &res
     }
+    if let Some(_data_sources) = &schema.data_source_schemas {
+        todo!()
+    }
+    result
+}
+
+fn generate_impls(_schema: &Provider) -> String {
+    // todo!()
+    String::new()
 }

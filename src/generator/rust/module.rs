@@ -1,9 +1,15 @@
 use std::collections::HashMap;
 
 use heck::ToUpperCamelCase;
-use terraform_schema::provider::{attribute::Type, Block, BlockSchema, Provider};
+use terraform_schema::provider::attribute::Type;
+use terraform_schema::provider::{Block, BlockSchema, Provider};
 
 use super::r#struct::Struct;
+
+pub fn generate_module(name: &str, schema: &Provider) -> String {
+    let structs = generate_structs();
+    let impls = generate_impls();
+}
 
 pub struct Module {
     name: String,
