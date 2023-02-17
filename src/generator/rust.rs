@@ -1,9 +1,9 @@
 mod block;
 
-use heck::ToUpperCamelCase;
-use terraform_schema::provider::{attribute::Type, Block, Provider, Schema};
+use heck::ToSnakeCase;
+use terraform_schema::provider::{Provider, Schema};
 
-use self::block::{filter_attr_type, generate_structs_from_block};
+use self::block::generate_structs_from_block;
 
 /// Generate rust source code from Terraform provider schema.
 pub fn generate_rust_code_from_schema(schema: &Schema) -> String {
@@ -29,14 +29,14 @@ fn generate_rust_module(name: &str, schema: &Provider) -> String {
     let name = name
         .split("/")
         .last()
-        .map(ToUpperCamelCase::to_upper_camel_case)
+        .map(ToSnakeCase::to_snake_case)
         .unwrap();
     let structs = generate_structs(schema);
     format!("pub mod {name} {{\n{structs}\n}}")
 }
 
 fn generate_structs(schema: &Provider) -> String {
-    let mut result = String::new();
+    let mut result = generate_structs_from_block("Provider", &schema.provider.block);
     if let Some(resources) = &schema.resource_schemas {
         result += "pub mod resource {\n";
         result += &resources

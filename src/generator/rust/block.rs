@@ -68,7 +68,7 @@ fn tf_block_to_rust_struct(name: &str, schema: &Block) -> String {
             .iter()
             .filter_map(filter_attr_type)
             .filter_map(|(name, _, ty, opt, comp)| if comp { None } else { Some((name, ty, opt)) })
-            .map(|(aname, ty, opt)| (aname, to_rust_type(&name, aname, ty), opt))
+            .map(|(aname, ty, opt)| (fix_ident(aname), to_rust_type(&name, aname, ty), opt))
             .map(|(name, ty, opt)| format!("{name}: {},\n", wrap_optional(ty, opt)))
             .collect::<String>();
         result += &attrs
@@ -82,16 +82,16 @@ fn tf_block_to_rust_struct(name: &str, schema: &Block) -> String {
     if let Some(blocks) = &schema.block_types {
         result += &blocks
             .iter()
-            .map(|(bname, ty)| (bname, bname.to_upper_camel_case(), ty))
+            .map(|(bname, ty)| (fix_ident(bname), bname.to_upper_camel_case(), ty))
             .map(|(n, bname, ty)| match ty {
-                provider::Type::Single { .. } => format!("{n}: {name}{bname}\n"),
+                provider::Type::Single { .. } => format!("{n}: {name}{bname},\n"),
                 provider::Type::List { .. } => {
                     format!("{n}: ::std::vec::Vec<{name}{bname}>,\n")
                 }
             })
             .collect::<String>();
     }
-    result + "}"
+    result + "}\n"
 }
 
 fn tf_mapping_to_rust_struct(name: &str, mapping: &HashMap<String, Type>) -> String {
@@ -99,7 +99,7 @@ fn tf_mapping_to_rust_struct(name: &str, mapping: &HashMap<String, Type>) -> Str
     let mut result = format!("pub struct {name} {{\n");
     result += &mapping
         .iter()
-        .map(|(fname, field)| (fname, to_rust_type(&name, fname, field)))
+        .map(|(fname, field)| (fix_ident(fname), to_rust_type(&name, fname, field)))
         .map(|(fname, ty)| format!("{fname}: {ty},\n"))
         .collect::<String>();
     result + "}\n"
@@ -189,5 +189,13 @@ pub fn find_custom_type(ty: &Type) -> Option<&HashMap<String, Type>> {
         Type::List(ty) => find_custom_type(ty),
         Type::Object(mapping) => Some(mapping),
         _ => None,
+    }
+}
+
+/// Replace rust keywords with raw names.
+pub fn fix_ident(input: &str) -> &str {
+    match input {
+        "type" => "r#type",
+        _ => input,
     }
 }
