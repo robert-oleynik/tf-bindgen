@@ -1,9 +1,9 @@
 mod block;
 
 use heck::ToUpperCamelCase;
-use terraform_schema::provider::{Provider, Schema};
+use terraform_schema::provider::{attribute::Type, Block, Provider, Schema};
 
-use self::block::generate_structs_from_block;
+use self::block::{filter_attr_type, generate_structs_from_block};
 
 /// Generate rust source code from Terraform provider schema.
 pub fn generate_rust_code_from_schema(schema: &Schema) -> String {
@@ -32,29 +32,27 @@ fn generate_rust_module(name: &str, schema: &Provider) -> String {
         .map(ToUpperCamelCase::to_upper_camel_case)
         .unwrap();
     let structs = generate_structs(schema);
-    let impls = generate_impls(schema);
-    format!("pub mod {name} {{\n{structs}\n{impls}\n}}")
+    format!("pub mod {name} {{\n{structs}\n}}")
 }
 
 fn generate_structs(schema: &Provider) -> String {
     let mut result = String::new();
     if let Some(resources) = &schema.resource_schemas {
+        result += "pub mod resource {\n";
         result += &resources
             .iter()
-            .map(|(name, schema)| generate_structs_from_block(name, &schema.block))
+            .map(|(name, schema)| (name, &schema.block))
+            .map(|(name, schema)| generate_structs_from_block(name, schema))
             .fold(String::new(), |text, st| text + &st + "\n");
+        result += "}\n";
     }
     if let Some(data_sources) = &schema.data_source_schemas {
+        result += "pub mod data {\n";
         result += &data_sources
             .iter()
             .map(|(name, schema)| generate_structs_from_block(name, &schema.block))
             .fold(String::new(), |text, st| text + &st + "\n");
-        // todo!()
+        result += "}\n";
     }
     result
-}
-
-fn generate_impls(_schema: &Provider) -> String {
-    // todo!()
-    String::new()
 }
