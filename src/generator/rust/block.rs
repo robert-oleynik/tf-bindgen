@@ -59,10 +59,15 @@ pub fn generate_structs_from_mapping(
     result
 }
 
+const META: &str = r#"
+#[derive(::terraform_bindgen_core::builder::Builder, Clone)]
+#[builder(crate = "::terraform_bindgen_core::builder", setter(into))]
+"#;
+
 /// Converts a given Terrasform [`Block`] into a rust struct.
 fn tf_block_to_rust_struct(name: &str, schema: &Block) -> String {
     let name = name.to_upper_camel_case();
-    let mut result = format!("pub struct {name} {{\n");
+    let mut result = format!("{META}pub struct {name} {{\n");
     if let Some(attrs) = &schema.attributes {
         result += &attrs
             .iter()
@@ -96,7 +101,7 @@ fn tf_block_to_rust_struct(name: &str, schema: &Block) -> String {
 
 fn tf_mapping_to_rust_struct(name: &str, mapping: &HashMap<String, Type>) -> String {
     let name = name.to_upper_camel_case();
-    let mut result = format!("pub struct {name} {{\n");
+    let mut result = format!("{META}pub struct {name} {{\n");
     result += &mapping
         .iter()
         .map(|(fname, field)| (fix_ident(fname), to_rust_type(&name, fname, field)))
