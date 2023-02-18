@@ -248,11 +248,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "terraform-bindgen-codegen"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "terraform-bindgen-core"
 version = "0.1.0"
 dependencies = [
  "derive_builder",
  "serde_json",
+ "terraform-bindgen-codegen",
  "terraform-schema",
 ]
 
