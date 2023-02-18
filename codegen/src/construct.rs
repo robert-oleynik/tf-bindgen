@@ -1,4 +1,4 @@
-use heck::ToUpperCamelCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use quote::__private::{Span, TokenStream};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
@@ -44,22 +44,26 @@ pub enum FieldType {
 
 impl Construct {
     pub fn to_token_stream(&self) -> TokenStream {
+        let mod_ident = Ident::new(&self.name.to_string().to_snake_case(), Span::call_site());
         let ident = &self.name;
         let fields = self
             .fields
             .iter()
             .filter(|field| field.auto.is_none())
-            .map(|field| field.to_field_token_stream(format!("{ident}").as_str()));
+            .map(|field| field.to_field_token_stream(""));
         let others = self
             .fields
             .iter()
             .filter(|field| field.auto.is_none())
-            .map(|field| field.to_struct_token_stream(ident.to_string().as_ref()));
+            .map(|field| field.to_struct_token_stream(""));
         quote::quote!(
-            pub struct #ident {
-                #( #fields ),*
+            pub mod #mod_ident {
+                pub struct #ident {
+                    #( #fields ),*
+                }
+                #( #others )*
             }
-            #( #others )*
+            pub use #mod_ident::#ident;
         )
     }
 }
@@ -79,7 +83,6 @@ impl Field {
         let name_str = self.name.to_string().to_upper_camel_case();
         let prefix = format!("{prefix}{name_str}");
         let ident = Ident::new(&prefix, Span::call_site());
-        println!("Type {prefix}");
         let fields = self
             .ty
             .custom_type_fields()
@@ -109,10 +112,7 @@ impl FieldType {
         match self {
             FieldType::Object { fields } => Some(fields.iter()),
             FieldType::Map { nested, .. } => nested.custom_type_fields(),
-            FieldType::List { nested, min, max } => {
-                println!("List Config {min:?} {max:?}");
-                nested.custom_type_fields()
-            }
+            FieldType::List { nested, .. } => nested.custom_type_fields(),
             FieldType::Set { nested } => nested.custom_type_fields(),
             FieldType::Type { .. } => None,
         }

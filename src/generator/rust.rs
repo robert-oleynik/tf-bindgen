@@ -78,9 +78,10 @@ fn tf_block_to_codegen_type(block: &Block) -> String {
     if let Some(block_types) = &block.block_types {
         result += &block_types
             .iter()
+            .map(|(name, schema)| (fix_ident(name), schema))
             .map(|(name, schema)| match schema {
                 Type::Single { block } => {
-                    format!("\t{name}: {{\n{}\n\t}},\n", tf_block_to_codegen_type(block))
+                    format!("\t{name}: {},\n", tf_block_to_codegen_type(block))
                 }
                 Type::List {
                     block,
@@ -101,6 +102,7 @@ fn tf_block_to_codegen_type(block: &Block) -> String {
 }
 
 fn attribute_to_param((name, attribute): (&String, &Attribute)) -> String {
+    let name = fix_ident(name);
     let desc = match attribute {
         Attribute::Type { description, .. } | Attribute::NestedType { description, .. } => {
             description
@@ -154,9 +156,58 @@ fn tf_type_to_codegen_type(ty: &attribute::Type) -> String {
             let mut result = "{\n".to_string();
             result += &mapping
                 .iter()
-                .map(|(key, value)| format!("{key}: {},\n", tf_type_to_codegen_type(value)))
+                .map(|(key, value)| (fix_ident(key), tf_type_to_codegen_type(value)))
+                .map(|(key, value)| format!("\t\t{key}: {value},\n"))
                 .collect::<String>();
             result + "}"
         }
+    }
+}
+
+/// Replace rust keywords with raw names.
+fn fix_ident(input: &str) -> &str {
+    if input.is_empty() {
+        panic!("ident: '{input}' is empty")
+    }
+    match input {
+        "type" => "r#type",
+        "as" => "r#as",
+        "async" => "r#async",
+        "await" => "r#await",
+        "box" => "r#box",
+        "break" => "r#break",
+        "const" => "r#const",
+        "continue" => "r#continue",
+        "default" => "r#default",
+        "dyn" => "r#dyn",
+        "else" => "r#else",
+        "enum" => "r#enum",
+        "extern" => "r#extern",
+        "fn" => "r#final",
+        "for" => "r#for",
+        "if" => "r#if",
+        "impl" => "r#impl",
+        "in" => "r#in",
+        "let" => "r#let",
+        "loop" => "r#loop",
+        "macro" => "r#macro",
+        "match" => "r#match",
+        "mod" => "r#mod",
+        "move" => "r#move",
+        "mut" => "r#mut",
+        "pub" => "r#pub",
+        "ref" => "r#ref",
+        "return" => "r#return",
+        "self" => "r#self",
+        "static" => "r#static",
+        "super" => "r#super",
+        "trait" => "r#trait",
+        "union" => "r#union",
+        "unsafe" => "r#unsafe",
+        "use" => "r#use",
+        "where" => "r#where",
+        "while" => "r#while",
+        "yield" => "r#yield",
+        _ => input,
     }
 }
