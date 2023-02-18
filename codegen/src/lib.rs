@@ -21,5 +21,5 @@ pub fn construct(tokens: TokenStream) -> TokenStream {
     use construct::Construct;
 
     let construct = parse_macro_input!(tokens as Construct);
-    todo!()
+    construct.to_token_stream().into()
 }
