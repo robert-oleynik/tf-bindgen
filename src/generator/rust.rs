@@ -60,9 +60,9 @@ fn schemas_to_constructs<'a, 'b>(
     (name, schema): (&'a String, &'b BlockSchema),
 ) -> (&'a String, String) {
     let st_name = name.to_upper_camel_case();
+    let codegen = tf_block_to_codegen_type(&schema.block);
     let code = format!(
-        "::terraform_bindgen_core::codegen::construct! {{\n\tpub {st_name} {}\n}}\n",
-        tf_block_to_codegen_type(&schema.block)
+        "::terraform_bindgen_core::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",
     );
     (name, code)
 }
@@ -178,7 +178,6 @@ fn fix_ident(input: &str) -> &str {
         "break" => "r#break",
         "const" => "r#const",
         "continue" => "r#continue",
-        "default" => "r#default",
         "dyn" => "r#dyn",
         "else" => "r#else",
         "enum" => "r#enum",

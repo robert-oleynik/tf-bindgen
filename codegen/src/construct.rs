@@ -42,15 +42,45 @@ pub enum FieldType {
     },
 }
 
+pub fn generate_struct<'a>(
+    name: &Ident,
+    prefix: &str,
+    fields: impl Iterator<Item = &'a Field>,
+) -> TokenStream {
+    let builder_ident = Ident::new(&format!("{name}Builder"), Span::call_site());
+    let fields = fields
+        .filter(|field| field.auto.is_none())
+        .map(|field| field.to_field_token_stream(prefix));
+    quote::quote!(
+        #[derive(::terraform_bindgen_core::builder::Builder, ::std::clone::Clone)]
+        #[builder(
+            crate = "::terraform_bindgen_core::builder",
+            setter(into, strip_option),
+            build_fn(private, name="fallible_build")
+            )]
+        pub struct #name {
+            #( #fields ),*
+        }
+
+        impl #name {
+            pub fn builder() -> #builder_ident {
+                #builder_ident::default()
+            }
+        }
+
+        impl #builder_ident {
+            pub fn build(&mut self) -> #name {
+                self.fallible_build().expect("required field not initialized")
+            }
+        }
+    )
+}
+
 impl Construct {
     pub fn to_token_stream(&self) -> TokenStream {
         let mod_ident = Ident::new(&self.name.to_string().to_snake_case(), Span::call_site());
         let ident = &self.name;
-        let fields = self
-            .fields
-            .iter()
-            .filter(|field| field.auto.is_none())
-            .map(|field| field.to_field_token_stream(""));
+        let struct_impl = generate_struct(&ident, "", self.fields.iter());
         let others = self
             .fields
             .iter()
@@ -58,9 +88,7 @@ impl Construct {
             .map(|field| field.to_struct_token_stream(""));
         quote::quote!(
             pub mod #mod_ident {
-                pub struct #ident {
-                    #( #fields ),*
-                }
+                #struct_impl
                 #( #others )*
             }
             pub use #mod_ident::#ident;
@@ -68,14 +96,38 @@ impl Construct {
     }
 }
 
+fn is_option(stream: &TokenStream) -> bool {
+    let ty: Type = syn::parse2(stream.clone()).unwrap();
+    match ty {
+        Type::Path(path)
+            if path
+                .path
+                .segments
+                .last()
+                .iter()
+                .find(|seg| seg.ident == "Option")
+                .is_some() =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+
 impl Field {
     pub fn to_field_token_stream(&self, prefix: &str) -> TokenStream {
         let name_str = self.name.to_string().to_upper_camel_case();
+        let ty_name = format!("{prefix}{name_str}");
         let name = &self.name;
-        let ty = self
-            .ty
-            .to_type_token_stream(format!("{prefix}{name_str}").as_str());
-        quote::quote!(#name: #ty)
+        let ty = self.ty.to_type_token_stream(&ty_name);
+        let mut setter_args = quote::quote!(into);
+        if is_option(&ty) {
+            setter_args = quote::quote!(#setter_args, strip_option);
+        }
+        if name == "default" {
+            setter_args = quote::quote!(#setter_args, name = "default_");
+        }
+        quote::quote!(#[builder(setter(#setter_args))] #name: #ty)
     }
 
     /// Generate all structs necessary to create this field.
@@ -90,18 +142,13 @@ impl Field {
             .cloned()
             .flatten()
             .collect::<Vec<_>>();
-        let field_decl = fields
-            .iter()
-            .filter(|field| field.auto.is_none())
-            .map(|field| field.to_field_token_stream(&prefix));
         let impls = fields
             .iter()
             .filter(|field| field.auto.is_none())
             .map(|field| field.to_struct_token_stream(&prefix));
+        let struct_impl = generate_struct(&ident, &prefix, fields.iter().map(|f| *f));
         quote::quote!(
-            pub struct #ident {
-                #( #field_decl ),*
-            }
+            #struct_impl
             #( #impls )*
         )
     }
