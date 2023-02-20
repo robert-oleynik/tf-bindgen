@@ -1,70 +1,83 @@
-use heck::{ToSnakeCase, ToUpperCamelCase};
-use terraform_schema::provider::{
-    attribute, Attribute, Block, BlockSchema, Provider, Schema, Type,
-};
+use std::collections::HashMap;
 
-/// Generate rust source code from Terraform provider schema.
-pub fn generate_rust_code_from_schema(schema: &Schema) -> String {
-    match schema {
-        Schema::V1_0 {
-            provider_schemas,
-            provider_versions: _,
-        } => {
-            let mut result = String::new();
-            if let Some(schemas) = provider_schemas {
-                result += &schemas
-                    .iter()
-                    .map(|(name, schema)| generate_rust_module(name, schema))
-                    .fold(String::new(), |text, module| text + &module + "\n")
+use heck::ToUpperCamelCase;
+use terraform_schema::provider::{attribute, Attribute, Block, Provider, Schema, Type};
+
+pub struct GenerationResult {
+    pub providers: HashMap<String, ProviderResult>,
+}
+
+pub struct ProviderResult {
+    pub declaration: String,
+    pub data_sources: Vec<ConstructResult>,
+    pub resources: Vec<ConstructResult>,
+}
+
+pub struct ConstructResult {
+    pub name: String,
+    pub declaration: String,
+}
+
+impl From<&Schema> for GenerationResult {
+    fn from(schema: &Schema) -> Self {
+        match schema {
+            Schema::V1_0 {
+                provider_schemas,
+                provider_versions: _,
+            } => {
+                let mut providers = HashMap::new();
+                if let Some(schemas) = provider_schemas {
+                    let iter = schemas
+                        .iter()
+                        .map(|(name, schema)| (name.clone(), ProviderResult::from(schema)));
+                    providers.extend(iter);
+                }
+                Self { providers }
             }
-            result
+            Schema::Unknown => unimplemented!("only schema version 1.0 supported"),
         }
-        Schema::Unknown => unimplemented!("only schema version 1.0 supported"),
     }
 }
 
-fn generate_rust_module(name: &str, schema: &Provider) -> String {
-    let name = name
-        .split("/")
-        .last()
-        .map(ToSnakeCase::to_snake_case)
-        .unwrap();
-    let structs = generate_constructs(schema);
-    format!("pub mod {name} {{\n{structs}\n}}")
+impl From<&Provider> for ProviderResult {
+    fn from(schema: &Provider) -> Self {
+        // TODO: generate provider
+        let resources = schema
+            .resource_schemas
+            .iter()
+            .flatten()
+            .map(|(name, schema)| (name, &schema.block))
+            .map(ConstructResult::from)
+            .collect();
+        let data_sources = schema
+            .data_source_schemas
+            .iter()
+            .flatten()
+            .map(|(name, schema)| (name, &schema.block))
+            .map(ConstructResult::from)
+            .collect();
+        Self {
+            declaration: String::new(),
+            resources,
+            data_sources,
+        }
+    }
 }
 
-fn generate_constructs(schema: &Provider) -> String {
-    // let mut result = generate_structs_from_block("Provider", &schema.provider.block);
-    let mut result = String::new();
-    if let Some(resources) = &schema.resource_schemas {
-        result += "pub mod resource {\n";
-        result += &resources
-            .iter()
-            .map(schemas_to_constructs)
-            .fold(String::new(), |text, (_, content)| text + &content + "\n");
-        result += "}\n";
+impl From<(&String, &Block)> for ConstructResult {
+    fn from((name, schema): (&String, &Block)) -> Self {
+        Self {
+            name: name.clone(),
+            declaration: schema_to_construct(name, schema),
+        }
     }
-    if let Some(data_sources) = &schema.data_source_schemas {
-        result += "pub mod data {\n";
-        result += &data_sources
-            .iter()
-            .map(schemas_to_constructs)
-            .fold(String::new(), |text, (_, content)| text + &content + "\n");
-        result += "}\n";
-    }
-    result
 }
 
 /// Converts a given [`BlockSchema`] into a rust construct declaration.
-fn schemas_to_constructs<'a, 'b>(
-    (name, schema): (&'a String, &'b BlockSchema),
-) -> (&'a String, String) {
+fn schema_to_construct(name: &String, schema: &Block) -> String {
     let st_name = name.to_upper_camel_case();
-    let codegen = tf_block_to_codegen_type(&schema.block);
-    let code = format!(
-        "::terraform_bindgen_core::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",
-    );
-    (name, code)
+    let codegen = tf_block_to_codegen_type(schema);
+    format!("::terraform_bindgen_core::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",)
 }
 
 fn tf_block_to_codegen_type(block: &Block) -> String {
