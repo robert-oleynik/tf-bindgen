@@ -13,5 +13,5 @@ pub trait Construct {
     fn name(&self) -> &str;
 
     /// Returns the construct's path.
-    fn path(&self) -> &str;
+    fn path(&self) -> String;
 }

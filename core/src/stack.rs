@@ -34,7 +34,7 @@ impl Construct for Stack {
         &self.name
     }
 
-    fn path(&self) -> &str {
-        &self.name
+    fn path(&self) -> String {
+        self.name.to_string()
     }
 }

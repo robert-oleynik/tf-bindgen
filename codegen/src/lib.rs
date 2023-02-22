@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
 mod construct;
+mod struct_info;
 
 /// Used to generate a construct from declaration.
 ///
