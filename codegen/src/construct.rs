@@ -1,8 +1,10 @@
-use heck::{ToSnakeCase, ToUpperCamelCase};
-use quote::__private::{Span, TokenStream};
+use heck::ToUpperCamelCase;
+use quote::__private::Span;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Attribute, Ident, LitInt, Token, Type};
+
+use crate::struct_info::{FieldInfo, StructInfo, StructType};
 
 pub struct Construct {
     pub pub_token: Token![pub],
@@ -42,115 +44,82 @@ pub enum FieldType {
     },
 }
 
-pub fn generate_struct<'a>(
-    name: &Ident,
-    prefix: &str,
-    fields: impl Iterator<Item = &'a Field>,
-) -> TokenStream {
-    let builder_ident = Ident::new(&format!("{name}Builder"), Span::call_site());
-    let fields = fields
-        .filter(|field| field.auto.is_none())
-        .map(|field| field.to_field_token_stream(prefix));
-    quote::quote!(
-        #[derive(::terraform_bindgen_core::builder::Builder, ::std::clone::Clone)]
-        #[builder(
-            crate = "::terraform_bindgen_core::builder",
-            setter(into, strip_option),
-            build_fn(private, name="fallible_build")
-            )]
-        pub struct #name {
-            #( #fields ),*
-        }
-
-        impl #name {
-            pub fn builder() -> #builder_ident {
-                #builder_ident::default()
-            }
-        }
-
-        impl #builder_ident {
-            pub fn build(&mut self) -> #name {
-                self.fallible_build().expect("required field not initialized")
-            }
-        }
-    )
-}
-
-impl Construct {
-    pub fn to_token_stream(&self) -> TokenStream {
-        let mod_ident = Ident::new(&self.name.to_string().to_snake_case(), Span::call_site());
-        let ident = &self.name;
-        let struct_impl = generate_struct(&ident, "", self.fields.iter());
-        let others = self
+impl Into<Vec<StructInfo>> for Construct {
+    fn into(self) -> Vec<StructInfo> {
+        let this = StructInfo {
+            struct_type: StructType::Construct,
+            name: self.name,
+            fields: self
+                .fields
+                .iter()
+                .map(|field| field.as_field_info(""))
+                .collect(),
+        };
+        let mut result = vec![this];
+        let iter = self
             .fields
             .iter()
-            .filter(|field| field.auto.is_none())
-            .map(|field| field.to_struct_token_stream(""));
-        quote::quote!(
-            pub mod #mod_ident {
-                #struct_impl
-                #( #others )*
-            }
-            pub use #mod_ident::#ident;
-        )
-    }
-}
-
-fn is_option(stream: &TokenStream) -> bool {
-    let ty: Type = syn::parse2(stream.clone()).unwrap();
-    match ty {
-        Type::Path(path)
-            if path
-                .path
-                .segments
-                .last()
-                .iter()
-                .find(|seg| seg.ident == "Option")
-                .is_some() =>
-        {
-            true
-        }
-        _ => false,
+            .flat_map(|field| field.as_struct_info(""));
+        result.extend(iter);
+        result
     }
 }
 
 impl Field {
-    pub fn to_field_token_stream(&self, prefix: &str) -> TokenStream {
-        let name_str = self.name.to_string().to_upper_camel_case();
-        let ty_name = format!("{prefix}{name_str}");
-        let name = &self.name;
-        let ty = self.ty.to_type_token_stream(&ty_name);
-        let mut setter_args = quote::quote!(into);
-        if is_option(&ty) {
-            setter_args = quote::quote!(#setter_args, strip_option);
+    pub fn as_struct_info(&self, type_prefix: &str) -> Vec<StructInfo> {
+        let mut result = Vec::new();
+        if let Some(fields) = self.ty.custom_type_fields() {
+            let name_str = self.name.to_string().to_upper_camel_case();
+            let ident_str = format!("{type_prefix}{name_str}");
+            let ident = Ident::new(&ident_str, Span::call_site());
+            let this = StructInfo {
+                struct_type: StructType::Inner,
+                name: ident,
+                fields: fields
+                    .clone()
+                    .map(|field| field.as_field_info(&ident_str))
+                    .collect(),
+            };
+            result.push(this);
+            result.extend(fields.flat_map(|field| field.as_struct_info(&name_str)));
         }
-        if name == "default" {
-            setter_args = quote::quote!(#setter_args, name = "default_");
-        }
-        quote::quote!(#[builder(setter(#setter_args))] #name: #ty)
+        result
     }
 
-    /// Generate all structs necessary to create this field.
-    pub fn to_struct_token_stream(&self, prefix: &str) -> TokenStream {
-        let name_str = self.name.to_string().to_upper_camel_case();
-        let prefix = format!("{prefix}{name_str}");
-        let ident = Ident::new(&prefix, Span::call_site());
-        let fields = self
-            .ty
-            .custom_type_fields()
-            .iter()
-            .cloned()
-            .flatten()
-            .collect::<Vec<_>>();
-        let impls = fields
-            .iter()
-            .filter(|field| field.auto.is_none())
-            .map(|field| field.to_struct_token_stream(&prefix));
-        let struct_impl = generate_struct(&ident, &prefix, fields.iter().map(|f| *f));
-        quote::quote!(
-            #struct_impl
-            #( #impls )*
-        )
+    fn as_field_info(&self, parent_type: &str) -> (Ident, FieldInfo) {
+        let name = self.name.to_string().to_upper_camel_case();
+        let name = format!("{parent_type}{name}");
+        let ident = self.name.clone();
+        let info = FieldInfo {
+            attributes: self.attributes.clone(),
+            ty: self.ty.as_type(&name),
+        };
+        (ident, info)
+    }
+}
+
+impl FieldType {
+    fn as_type(&self, custom_type_name: &str) -> syn::Type {
+        let tokens = match self {
+            FieldType::Object { .. } => {
+                let custom_type_ident = Ident::new(custom_type_name, Span::call_site());
+                quote::quote!(#custom_type_ident)
+            }
+            FieldType::Map { key_ty, nested } => {
+                let ty = nested.as_type(custom_type_name);
+                quote::quote!(::std::collections::HashMap<#key_ty, #ty>)
+            }
+            FieldType::List { nested, .. } => {
+                let ty = nested.as_type(custom_type_name);
+                quote::quote!(::std::vec::Vec<#ty>)
+            }
+            FieldType::Set { nested } => {
+                let ty = nested.as_type(custom_type_name);
+                quote::quote!(::std::collections::HashSet<#ty>)
+            }
+            FieldType::Type { ty } => quote::quote!(#ty),
+        };
+        syn::parse2(tokens).unwrap()
     }
 }
 
@@ -162,41 +131,6 @@ impl FieldType {
             FieldType::List { nested, .. } => nested.custom_type_fields(),
             FieldType::Set { nested } => nested.custom_type_fields(),
             FieldType::Type { .. } => None,
-        }
-    }
-
-    pub fn to_type_token_stream(&self, ty: &str) -> TokenStream {
-        match self {
-            FieldType::Object { .. } => {
-                let ident = syn::Ident::new(ty, Span::call_site());
-                quote::quote!( #ident )
-            }
-            FieldType::Map { key_ty, nested } => {
-                let nested = nested.to_type_token_stream(ty);
-                quote::quote!( ::std::collections::HashMap<#key_ty, #nested> )
-            }
-            FieldType::List {
-                nested,
-                max: Some(lit),
-                min,
-            } if lit.base10_parse::<usize>().expect("expected usize") == 1 => {
-                let nested = nested.to_type_token_stream(ty);
-                if let Some(min) = min {
-                    if min.base10_parse::<usize>().expect("expected usize") == 1 {
-                        return quote::quote!( #nested );
-                    }
-                }
-                quote::quote!( ::std::option::Option<#nested> )
-            }
-            FieldType::List { nested, .. } => {
-                let nested = nested.to_type_token_stream(ty);
-                quote::quote!( ::std::vec::Vec<#nested> )
-            }
-            FieldType::Set { nested } => {
-                let nested = nested.to_type_token_stream(ty);
-                quote::quote!( ::std::collections::HashSet<#nested> )
-            }
-            FieldType::Type { ty } => quote::quote!( #ty ),
         }
     }
 }

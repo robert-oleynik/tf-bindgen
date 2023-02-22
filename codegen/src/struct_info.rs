@@ -40,7 +40,7 @@ impl StructInfo {
                     C: ::terraform_bindgen_core::Construct
                 {
                     scope: ::std::rc::Rc<C>,
-                    name: String,
+                    name: ::std::string::String,
                     #( #fields ),*
                 }
 
@@ -48,8 +48,11 @@ impl StructInfo {
                 where
                     C: ::terraform_bindgen_core::Construct,
                 {
-                    pub fn create(scope: impl AsRef<Rc<C>>, name: impl Into<String>) -> #builder_ident {
-                        #builder_ident::new(app.as_ref().clone(), name)
+                    pub fn create(
+                        scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>,
+                        name: impl ::std::convert::Into<::std::string::String>) -> #builder_ident<C>
+                    {
+                        #builder_ident::new(scope.as_ref().clone(), name)
                     }
                 }
 
@@ -57,20 +60,20 @@ impl StructInfo {
                 where
                     C: ::terraform_bindgen_core::Construct,
                 {
-                    fn app(&self) -> Rc<App> {
-                        self.parent.app();
+                    fn app(&self) -> ::std::rc::Rc<::terraform_bindgen_core::app::App> {
+                        self.scope.app()
                     }
 
                     fn stack(&self) -> &str {
-                        self.parent.stack();
+                        self.scope.stack()
                     }
 
                     fn name(&self) -> &str {
                         &self.name
                     }
 
-                fn path(&self) -> String {
-                        format!("{}/{}", self.parent.path(), self.name)
+                    fn path(&self) -> ::std::string::String {
+                        format!("{}/{}", self.scope.path(), self.name)
                     }
                 }
             ),
@@ -106,8 +109,8 @@ impl StructInfo {
                 where
                     C: ::terraform_bindgen_core::Construct
                 {
-                    scope: Rc<C>,
-                    name: String,
+                    scope: ::std::rc::Rc<C>,
+                    name: ::std::string::String,
                     #( #builder_fields ),*
                 }
 
@@ -117,15 +120,18 @@ impl StructInfo {
                 {
                     #( #builder_setters )*
 
-                    pub fn new(scope: Rc<C>, name: impl Into<String>) -> Self {
+                    pub fn new(
+                        scope: ::std::rc::Rc<C>,
+                        name: impl ::std::convert::Into<::std::string::String>
+                    ) -> Self {
                         Self {
-                            app,
+                            scope,
                             name: name.into(),
                             #( #builder_field_names: None ),*
                         }
                     }
 
-                    pub fn build(&mut self) -> #name {
+                    pub fn build(&mut self) -> #name<C> {
                         let result = #name {
                             scope: self.scope.clone(),
                             name: self.name.clone(),
@@ -205,10 +211,10 @@ impl FieldInfo {
     /// option unwraps if necessary.
     pub fn into_builder_assign((name, this): (&Ident, &FieldInfo)) -> TokenStream {
         if this.is_optional() {
-            quote::quote!(#name: #name.clone())
+            quote::quote!(#name: self.#name.clone())
         } else {
             let message = format!("expected missing field `{name}`");
-            quote::quote!(#name: #name.cloned().expect(#message))
+            quote::quote!(#name: self.#name.clone().expect(#message))
         }
     }
 
