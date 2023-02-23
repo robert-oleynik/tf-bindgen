@@ -1,18 +1,17 @@
+use std::cell::{Ref, RefCell, RefMut};
 use std::{collections::HashMap, rc::Rc};
 
 use terraform_schema::document::{Meta, Metadata, Resource};
 use terraform_schema::Document;
 
 pub struct App {
-    name: String,
-    stacks: HashMap<String, Document>,
+    stacks: HashMap<String, RefCell<Document>>,
 }
 
 impl App {
     /// Create a new app with `name`.
-    pub fn new(name: String) -> Rc<Self> {
+    pub fn new() -> Rc<Self> {
         Rc::new(Self {
-            name,
             stacks: HashMap::default(),
         })
     }
@@ -32,7 +31,7 @@ impl App {
             provider: HashMap::default(),
             resource: HashMap::default(),
         };
-        self.stacks.insert(stack_name, document);
+        self.stacks.insert(stack_name, RefCell::new(document));
     }
 
     /// Used to add  a resource to the root document.
@@ -43,25 +42,52 @@ impl App {
     /// - `resource_type` Type of the resource object
     /// - `name` Name of the resource object
     /// - `resource` Resource configuration
+    ///
+    /// # Panics
+    ///
+    /// Will panic if document of stack `name` was already borrowed.
     pub fn add_resource(
-        &mut self,
-        stack_name: impl AsRef<String>,
+        &self,
+        stack_name: impl AsRef<str>,
         resource_type: impl Into<String>,
         name: impl Into<String>,
         resource: Resource,
     ) {
-        if let Some(stack) = self.stacks.get_mut(stack_name.as_ref()) {
-            let resource_type = resource_type.into();
-            if !stack.resource.contains_key(&resource_type) {
-                stack
-                    .resource
-                    .insert(resource_type.clone(), HashMap::default());
-            }
+        let stack_name = stack_name.as_ref();
+        let mut stack = self
+            .stack_mut(stack_name)
+            .expect(&format!("no stack with name `{stack_name}`",));
+        let resource_type = resource_type.into();
+        if !stack.resource.contains_key(&resource_type) {
             stack
                 .resource
-                .get_mut(&resource_type)
-                .unwrap()
-                .insert(name.into(), resource);
+                .insert(resource_type.clone(), HashMap::default());
         }
+        stack
+            .resource
+            .get_mut(&resource_type)
+            .unwrap()
+            .insert(name.into(), resource);
+    }
+
+    /// Will borrow document of stack `name` and returns `None` if no such stack exists.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the document already is borrowed as a mutable reference.
+    pub fn stack(&self, name: impl AsRef<str>) -> Option<Ref<'_, Document>> {
+        self.stacks.get(name.as_ref()).map(|inner| inner.borrow())
+    }
+
+    /// Will borrow a mutable reference to document of stack `name` and return `None` if no such
+    /// stack exists.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the document already is borrowed.
+    pub fn stack_mut(&self, name: impl AsRef<str>) -> Option<RefMut<'_, Document>> {
+        self.stacks
+            .get(name.as_ref())
+            .map(|inner| inner.borrow_mut())
     }
 }

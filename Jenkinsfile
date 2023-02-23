@@ -31,7 +31,7 @@ pipeline {
 		stage('Test') {
 			steps {
 				container('rust') {
-					sh 'cargo test --workspace'
+					sh 'cargo test --workspace --tests'
 				}
 			}
 		}

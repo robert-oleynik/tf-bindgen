@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use heck::ToSnakeCase;
 use quote::ToTokens;
 use quote::__private::{Span, TokenStream};
 use syn::{Attribute, Ident, Type};
@@ -80,7 +81,8 @@ impl StructInfo {
                 }
             ),
             StructType::Inner => quote::quote!(
-                #[derive(Clone)]
+                #[derive(::std::clone::Clone, ::terraform_bindgen_core::serde::Serialize)]
+                #[serde(crate = "::terraform_bindgen_core::serde")]
                 pub struct #name {
                     #( #fields ),*
                 }
@@ -96,6 +98,7 @@ impl StructInfo {
 
     pub fn builder_tokens(&self) -> TokenStream {
         let name = &self.name;
+        let resource_type = self.name.to_string().to_snake_case();
         let builder_ident = format!("{}Builder", self.name);
         let builder_ident = Ident::new(&builder_ident, Span::call_site());
         let builder_fields = self
@@ -119,6 +122,17 @@ impl StructInfo {
             .iter()
             .filter(|(_, info)| !info.computed)
             .map(FieldInfo::into_builder_assign);
+        let builder_fields_value =
+            self.fields
+                .iter()
+                .filter(|(_, info)| !info.computed)
+                .map(|(ident, _)| {
+                    let ident_str = ident.to_string();
+                    quote::quote!(
+                        let value = ::terraform_bindgen_core::json::to_value(&self.#ident).unwrap();
+                        config.insert(#ident_str.to_string(), value);
+                    )
+                });
         match &self.struct_type {
             StructType::Construct => quote::quote!(
                 pub struct #builder_ident<C>
@@ -148,12 +162,26 @@ impl StructInfo {
                     }
 
                     pub fn build(&mut self) -> #name<C> {
+                        use ::terraform_bindgen_core::Construct;
                         let result = #name {
                             scope: self.scope.clone(),
                             name: self.name.clone(),
                             #( #builder_fields_assign ),*
                         };
-                        todo!()
+                        let mut config = ::std::collections::HashMap::new();
+                        #( #builder_fields_value )*
+                        let resource = ::terraform_bindgen_core::schema::document::Resource {
+                            meta: ::terraform_bindgen_core::schema::document::ResourceMeta {
+                                metadata: ::terraform_bindgen_core::schema::document::ResourceMetadata {
+                                    path: result.path(),
+                                    unique_id: result.name().to_string()
+                                },
+                            },
+                            config
+                        };
+                        let app = result.app();
+                        app.add_resource(result.stack(), #resource_type, result.name(), resource);
+                        result
                     }
                 }
             ),

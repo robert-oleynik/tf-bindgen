@@ -261,6 +261,7 @@ name = "terraform-bindgen-core"
 version = "0.1.0"
 dependencies = [
  "derive_builder",
+ "serde",
  "serde_json",
  "terraform-bindgen-codegen",
  "terraform-schema",
