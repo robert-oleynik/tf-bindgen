@@ -42,7 +42,7 @@ fn main() {
 		.expect("failed to generate terraform bindings");
 
 	let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-	bindings.write_to_file(out_path.join("terraform.rs"));
+	bindings.write_to_file(out_dir, "terraform.rs").unwrap();
 }
 ```
 
@@ -55,9 +55,11 @@ include!(concat!(env!("OUT_DIR"), "/terraform.rs"));
 ## Roadmap
 
 <!-- Upcoming changes -->
-- [ ] generate Rust code from Terraform provider
+- [ ] generate Rust code for Terraform provider
 	- [ ] implement data blocks
 	- [ ] implement resource blocks
+- [ ] add support for variable references
+- [ ] add support for outputs
 - [ ] generate Rust code from Terraform modules
 
 ## Contributing
