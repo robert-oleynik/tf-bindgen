@@ -46,20 +46,21 @@ pub enum FieldType {
 
 impl Into<Vec<StructInfo>> for Construct {
     fn into(self) -> Vec<StructInfo> {
+        let name_str = self.name.to_string();
         let this = StructInfo {
             struct_type: StructType::Construct,
             name: self.name,
             fields: self
                 .fields
                 .iter()
-                .map(|field| field.as_field_info(""))
+                .map(|field| field.as_field_info(&name_str))
                 .collect(),
         };
         let mut result = vec![this];
         let iter = self
             .fields
             .iter()
-            .flat_map(|field| field.as_struct_info(""));
+            .flat_map(|field| field.as_struct_info(&name_str));
         result.extend(iter);
         result
     }
@@ -81,7 +82,11 @@ impl Field {
                     .collect(),
             };
             result.push(this);
-            result.extend(fields.flat_map(|field| field.as_struct_info(&name_str)));
+            result.extend(
+                fields
+                    .filter(|field| field.auto.is_none())
+                    .flat_map(|field| field.as_struct_info(&ident_str)),
+            );
         }
         result
     }
@@ -91,6 +96,7 @@ impl Field {
         let name = format!("{parent_type}{name}");
         let ident = self.name.clone();
         let info = FieldInfo {
+            computed: self.auto.is_some(),
             attributes: self.attributes.clone(),
             ty: self.ty.as_type(&name),
         };

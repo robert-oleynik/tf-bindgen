@@ -145,7 +145,10 @@ fn attribute_to_param((name, attribute): (&String, &Attribute)) -> String {
     let comp = comp.unwrap_or(false);
     let opt = opt.unwrap_or(false);
     let req = req.unwrap_or(comp && !opt);
-    let auto = comp.then(|| "auto ").unwrap_or("");
+    let auto = match comp {
+        true => "auto ",
+        false => "",
+    };
     assert_ne!(opt, req, "Expected opt xor req");
     let ty = match attribute {
         Attribute::Type { r#type, .. } => tf_type_to_codegen_type(r#type),

@@ -18,7 +18,7 @@ pub struct Provider {
 impl Terraform {
     /// Add provider from specified dependency.
     pub fn add_provider(&mut self, provider: &Dependency) {
-        let segments: Vec<_> = provider.name().split("/").collect();
+        let segments: Vec<_> = provider.name().split('/').collect();
         let name = segments.last().unwrap();
         let provider = Provider {
             source: if segments.len() == 2 {

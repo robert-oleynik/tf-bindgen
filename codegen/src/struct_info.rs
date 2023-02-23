@@ -19,6 +19,7 @@ pub struct StructInfo {
 
 /// Stores all information required to generate field and associated builder function.
 pub struct FieldInfo {
+    pub computed: bool,
     pub attributes: Vec<Attribute>,
     pub ty: Type,
 }
@@ -31,6 +32,7 @@ impl StructInfo {
         let fields = self
             .fields
             .iter()
+            .filter(|(_, info)| !info.computed)
             .map(|(ident, info)| (ident, &info.ty))
             .map(|(ident, ty)| quote::quote!(pub #ident: #ty));
         match &self.struct_type {
@@ -78,6 +80,7 @@ impl StructInfo {
                 }
             ),
             StructType::Inner => quote::quote!(
+                #[derive(Clone)]
                 pub struct #name {
                     #( #fields ),*
                 }
@@ -98,11 +101,24 @@ impl StructInfo {
         let builder_fields = self
             .fields
             .iter()
-            .map(|(ident, info)| (ident, info.into_builder_field_type()))
+            .filter(|(_, info)| !info.computed)
+            .map(|(ident, info)| (ident, info.as_builder_field_type()))
             .map(|(ident, ty)| quote::quote!(#ident: #ty));
-        let builder_field_names = self.fields.iter().map(|(ident, _)| ident);
-        let builder_setters = self.fields.iter().map(FieldInfo::into_builder_setter);
-        let builder_fields_assign = self.fields.iter().map(FieldInfo::into_builder_assign);
+        let builder_field_names = self
+            .fields
+            .iter()
+            .filter(|(_, info)| !info.computed)
+            .map(|(ident, _)| ident);
+        let builder_setters = self
+            .fields
+            .iter()
+            .filter(|(_, info)| !info.computed)
+            .map(FieldInfo::as_builder_setter);
+        let builder_fields_assign = self
+            .fields
+            .iter()
+            .filter(|(_, info)| !info.computed)
+            .map(FieldInfo::into_builder_assign);
         match &self.struct_type {
             StructType::Construct => quote::quote!(
                 pub struct #builder_ident<C>
@@ -175,7 +191,7 @@ impl ToTokens for StructInfo {
 
 impl FieldInfo {
     /// Converts this field information into the builder's field type.
-    pub fn into_builder_field_type(&self) -> TokenStream {
+    pub fn as_builder_field_type(&self) -> TokenStream {
         let ty = &self.ty;
         if self.is_optional() {
             quote::quote!(#ty)
@@ -185,7 +201,7 @@ impl FieldInfo {
     }
 
     /// Converts a pair of field identifier and field information into a builder setter function.
-    pub fn into_builder_setter((name, this): (&Ident, &FieldInfo)) -> TokenStream {
+    pub fn as_builder_setter((name, this): (&Ident, &FieldInfo)) -> TokenStream {
         let attributes = &this.attributes;
         let ty = &this.ty;
         if this.is_optional() {
@@ -227,8 +243,7 @@ impl FieldInfo {
                 .iter()
                 .last()
                 .iter()
-                .find(|seg| seg.ident == "Option")
-                .is_some(),
+                .any(|seg| seg.ident == "Option"),
             _ => false,
         }
     }

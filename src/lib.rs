@@ -27,7 +27,7 @@ impl Bindings {
         let result = GenerationResult::from(&self.schema);
         let mut root_content = String::new();
         for (name, provider) in result.providers.iter() {
-            let name = name.split("/").last().unwrap();
+            let name = name.split('/').last().unwrap();
             let provider_dir = provider_dir.join(name);
             let resource_dir = provider_dir.join("resource");
             std::fs::create_dir_all(&resource_dir)?;

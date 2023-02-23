@@ -32,7 +32,7 @@ impl App {
             provider: HashMap::default(),
             resource: HashMap::default(),
         };
-        self.stacks.insert(stack_name, document.into());
+        self.stacks.insert(stack_name, document);
     }
 
     /// Used to add  a resource to the root document.
