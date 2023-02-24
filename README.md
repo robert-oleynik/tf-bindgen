@@ -60,7 +60,7 @@ include!(concat!(env!("OUT_DIR"), "/terraform.rs"));
 - [x] generate Rust code for Terraform provider
 	- [x] implement data blocks
 	- [x] implement resource blocks
-- [ ] implement Terraform cli wrapper as part of `App`
+- [x] implement Terraform cli wrapper as part of `App`
 - [ ] add support for variable references
 - [ ] add support for outputs
 - [ ] generate Rust code from Terraform modules
