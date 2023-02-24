@@ -46,6 +46,26 @@ impl App {
         self.deploy_stack(self.config.borrow().stacks.keys().next().unwrap())
     }
 
+    /// Will synthesize the infrastructure definition and validate the result using `terraform
+    /// validate`.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
+    ///
+    /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
+    /// - failed to create deployment directory
+    /// - failed to write deployment file
+    pub fn validate(&self) -> Result<()> {
+        if self.config.borrow().stacks.len() != 1 {
+            bail!(
+                "expected 1 stack but got {}",
+                self.config.borrow().stacks.len()
+            )
+        }
+        self.validate_stack(self.config.borrow().stacks.keys().next().unwrap())
+    }
+
     /// Will write deployment of stack with `name` to a file at `path`.
     ///
     /// # Errors
@@ -91,6 +111,41 @@ impl App {
         let terraform = Command::new("terraform")
             .arg(format!("-chdir={stack_dir}"))
             .arg("apply")
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()
+            .context("failed to run terraform")?;
+        if !terraform.status.success() {
+            bail!(
+                "terraform failed with exit code {}",
+                terraform.status.code().unwrap_or(-1)
+            )
+        }
+        Ok(())
+    }
+
+    /// Will synthesize the infrastructure definition and validate the result using `terraform
+    /// validate`.
+    ///
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
+    ///
+    /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
+    /// - failed to create deployment directory
+    /// - failed to write deployment file
+    pub fn validate_stack(&self, name: impl AsRef<str>) -> Result<()> {
+        let name = name.as_ref();
+        let stack_dir = format!("target/terraform/stacks/{name}");
+        std::fs::create_dir_all(&stack_dir).context("failed to create deployment directoy")?;
+        let stack_file = format!("{stack_dir}/cdk.tf.json");
+        self.synth(name, stack_file)
+            .with_context(|| format!("failed synthesize stack with name `{name}`"))?;
+        let terraform = Command::new("terraform")
+            .arg(format!("-chdir={stack_dir}"))
+            .arg("validate")
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
