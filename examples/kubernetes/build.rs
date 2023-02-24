@@ -3,7 +3,7 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=terraform.toml");
 
-    let bindings = terraform_bindgen::Builder::default()
+    let bindings = tf_bindgen::Builder::default()
         .config("terraform.toml")
         .generate()
         .expect("failed to generate terraform bindings");

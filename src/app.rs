@@ -4,8 +4,8 @@ use std::process::{Command, Stdio};
 use std::{collections::HashMap, rc::Rc};
 
 use anyhow::{anyhow, bail, Context, Result};
-use terraform_schema::document::{Meta, Metadata, Provider, Resource};
-use terraform_schema::Document;
+use tf_schema::document::{Meta, Metadata, Provider, Resource};
+use tf_schema::Document;
 
 struct Config {
     stacks: HashMap<String, Document>,
@@ -114,7 +114,7 @@ impl App {
                 metadata: Metadata {
                     backend: String::from("local"),
                     stack_name: stack_name.clone(),
-                    version: terraform_schema::VERSION.to_string(),
+                    version: tf_schema::VERSION.to_string(),
                 },
                 outputs: HashMap::default(),
             },

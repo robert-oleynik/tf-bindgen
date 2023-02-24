@@ -41,7 +41,7 @@ impl StructInfo {
             StructType::Construct => quote::quote!(
                 pub struct #name<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     scope: ::std::rc::Rc<C>,
                     name: ::std::string::String,
@@ -50,7 +50,7 @@ impl StructInfo {
 
                 impl<C> #name<C>
                 where
-                    C: ::terraform_bindgen::Construct,
+                    C: ::tf_bindgen::Construct,
                 {
                     pub fn create(
                         scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>,
@@ -60,11 +60,11 @@ impl StructInfo {
                     }
                 }
 
-                impl<C> ::terraform_bindgen::Construct for #name<C>
+                impl<C> ::tf_bindgen::Construct for #name<C>
                 where
-                    C: ::terraform_bindgen::Construct,
+                    C: ::tf_bindgen::Construct,
                 {
-                    fn app(&self) -> ::terraform_bindgen::app::App {
+                    fn app(&self) -> ::tf_bindgen::app::App {
                         self.scope.app()
                     }
 
@@ -84,7 +84,7 @@ impl StructInfo {
             StructType::Provider => quote::quote!(
                 pub struct #name<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     scope: ::std::rc::Rc<C>,
                     #( #fields ),*
@@ -92,7 +92,7 @@ impl StructInfo {
 
                 impl<C> #name<C>
                 where
-                    C: ::terraform_bindgen::Construct,
+                    C: ::tf_bindgen::Construct,
                 {
                     pub fn create(scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>) -> #builder_ident<C> {
                         #builder_ident::new(scope.as_ref().clone())
@@ -100,8 +100,8 @@ impl StructInfo {
                 }
             ),
             StructType::Inner => quote::quote!(
-                #[derive(::std::clone::Clone, ::terraform_bindgen::serde::Serialize)]
-                #[serde(crate = "::terraform_bindgen::serde")]
+                #[derive(::std::clone::Clone, ::tf_bindgen::serde::Serialize)]
+                #[serde(crate = "::tf_bindgen::serde")]
                 pub struct #name {
                     #( #fields ),*
                 }
@@ -148,7 +148,7 @@ impl StructInfo {
                 .map(|(ident, _)| {
                     let ident_str = ident.to_string();
                     quote::quote!(
-                        let value = ::terraform_bindgen::json::to_value(&self.#ident).unwrap();
+                        let value = ::tf_bindgen::json::to_value(&self.#ident).unwrap();
                         config.insert(#ident_str.to_string(), value);
                     )
                 });
@@ -156,7 +156,7 @@ impl StructInfo {
             StructType::Construct => quote::quote!(
                 pub struct #builder_ident<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     scope: ::std::rc::Rc<C>,
                     name: ::std::string::String,
@@ -165,7 +165,7 @@ impl StructInfo {
 
                 impl<C> #builder_ident<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     #( #builder_setters )*
 
@@ -181,7 +181,7 @@ impl StructInfo {
                     }
 
                     pub fn build(&mut self) -> #name<C> {
-                        use ::terraform_bindgen::Construct;
+                        use ::tf_bindgen::Construct;
                         let result = #name {
                             scope: self.scope.clone(),
                             name: self.name.clone(),
@@ -189,9 +189,9 @@ impl StructInfo {
                         };
                         let mut config = ::std::collections::HashMap::new();
                         #( #builder_fields_value )*
-                        let resource = ::terraform_bindgen::schema::document::Resource {
-                            meta: ::terraform_bindgen::schema::document::ResourceMeta {
-                                metadata: ::terraform_bindgen::schema::document::ResourceMetadata {
+                        let resource = ::tf_bindgen::schema::document::Resource {
+                            meta: ::tf_bindgen::schema::document::ResourceMeta {
+                                metadata: ::tf_bindgen::schema::document::ResourceMetadata {
                                     path: result.path(),
                                     unique_id: result.name().to_string()
                                 },
@@ -207,7 +207,7 @@ impl StructInfo {
             StructType::Provider => quote::quote!(
                 pub struct #builder_ident<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     scope: ::std::rc::Rc<C>,
                     #( #builder_fields ),*
@@ -215,7 +215,7 @@ impl StructInfo {
 
                 impl<C> #builder_ident<C>
                 where
-                    C: ::terraform_bindgen::Construct
+                    C: ::tf_bindgen::Construct
                 {
                     #( #builder_setters )*
 
@@ -229,12 +229,12 @@ impl StructInfo {
                     }
 
                     pub fn build(&mut self) -> #name<C> {
-                        use ::terraform_bindgen::Construct;
+                        use ::tf_bindgen::Construct;
                         let result = #name {
                             scope: self.scope.clone(),
                             #( #builder_fields_assign ),*
                         };
-                        let mut config = ::terraform_bindgen::json::Map::new();
+                        let mut config = ::tf_bindgen::json::Map::new();
                         #( #builder_fields_value )*
                         let app = self.scope.app();
                         app.add_provider(self.scope.stack(), #resource_type, config);

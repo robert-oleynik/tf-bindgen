@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [build-dependencies]
-terraform-bindgen = { path = "../../", version = "0.1.0" }
+tf-bindgen = { path = "../../", version = "0.1.0" }
 
 [dependencies]
-terraform-bindgen = { version = "0.1.0", path = "../../" }
+tf-bindgen = { version = "0.1.0", path = "../../" }

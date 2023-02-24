@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use heck::ToUpperCamelCase;
-use terraform_schema::provider::{attribute, Attribute, Block, Provider, Schema, Type};
+use tf_schema::provider::{attribute, Attribute, Block, Provider, Schema, Type};
 
 pub struct GenerationResult {
     pub providers: HashMap<String, ProviderResult>,
@@ -77,13 +77,13 @@ impl From<(&String, &Block)> for ConstructResult {
 fn schema_to_construct(name: &String, schema: &Block) -> String {
     let st_name = name.to_upper_camel_case();
     let codegen = tf_block_to_codegen_type(schema);
-    format!("::terraform_bindgen::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",)
+    format!("::tf_bindgen::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",)
 }
 
 /// Converts a given [`Block`] into a rust provider declaration.
 fn provider_to_construct(schema: &Block) -> String {
     let codegen = tf_block_to_codegen_type(schema);
-    format!("::terraform_bindgen::codegen::provider! {{\n\tpub Provider {codegen}\n}}\n")
+    format!("::tf_bindgen::codegen::provider! {{\n\tpub Provider {codegen}\n}}\n")
 }
 
 fn tf_block_to_codegen_type(block: &Block) -> String {
@@ -168,7 +168,7 @@ fn tf_type_to_codegen_type(ty: &attribute::Type) -> String {
         attribute::Type::String => "::std::string::String".to_string(),
         attribute::Type::Bool => "bool".to_string(),
         attribute::Type::Number => "usize".to_string(),
-        attribute::Type::Dynamic => "::terraform_bindgen::json::Value".to_string(),
+        attribute::Type::Dynamic => "::tf_bindgen::json::Value".to_string(),
         attribute::Type::Set(ty) => format!("[] => {}", tf_type_to_codegen_type(ty)),
         attribute::Type::Map(ty) => {
             format!("[::std::string::String] => {}", tf_type_to_codegen_type(ty))

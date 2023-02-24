@@ -9,14 +9,14 @@ pub mod stack;
 use std::path::Path;
 
 use generator::rust::GenerationResult;
-use terraform_schema::provider;
+use tf_schema::provider;
 
 pub use crate::builder::Builder;
 pub use construct::Construct;
 pub use serde;
 pub use serde_json as json;
-pub use terraform_bindgen_codegen as codegen;
-pub use terraform_schema as schema;
+pub use tf_bindgen_codegen as codegen;
+pub use tf_schema as schema;
 
 pub struct Bindings {
     schema: provider::Schema,

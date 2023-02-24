@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use anyhow::{bail, Context, Result};
-use terraform_schema::provider;
+use tf_schema::provider;
 
 use crate::model::{self, Document};
 
