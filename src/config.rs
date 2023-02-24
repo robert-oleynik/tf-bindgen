@@ -1,16 +1,8 @@
+use anyhow::{Context, Result};
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use toml::{map::Map, Value};
-
-use crate::dependency::Dependency;
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("{0}")]
-    Config(#[from] toml::de::Error),
-    #[error("{0}")]
-    Io(#[from] std::io::Error),
-}
 
 #[derive(Deserialize, Serialize)]
 pub struct Config {
@@ -19,9 +11,9 @@ pub struct Config {
 
 impl Config {
     /// Load configuration file from file system.
-    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
-        let config = std::fs::read_to_string(path)?;
-        Ok(toml::from_str(&config)?)
+    pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<Self> {
+        let config = std::fs::read_to_string(path).context("failed to read config file")?;
+        toml::from_str(&config).context("failed to parse config file")
     }
 
     /// Generates a list of `(<provider name>, <version constraint>)` pairs from specified providers.
@@ -29,12 +21,18 @@ impl Config {
     /// # Errors
     ///
     /// Will return `Err` if a provider constraint cannot been parsed.
-    pub fn providers(&self) -> Result<Vec<Dependency>, String> {
+    pub fn providers(&self) -> Result<Vec<(String, VersionReq)>> {
         self.provider
             .iter()
             .map(|(name, provider)| match provider {
-                Value::String(constraint) => Dependency::new(name.clone(), constraint),
-                _ => todo!("handle none string provider versions"),
+                Value::String(constraint) => {
+                    let version = VersionReq::parse(constraint)
+                        .context("failed to parse version constraint")?;
+                    Ok((name.clone(), version))
+                }
+                _ => Err(anyhow::anyhow!(
+                    "unexpected type of constraint `{name}` (expected: string)"
+                )),
             })
             .collect()
     }

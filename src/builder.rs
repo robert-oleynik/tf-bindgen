@@ -1,18 +1,8 @@
-use crate::config::Config;
-use crate::generator::schema::{self, Generator};
-use crate::Bindings;
+use anyhow::{anyhow, Context, Result};
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Missing config file")]
-    MissingConfigFile,
-    #[error("Failed to parse config {1}. Reason: {0}")]
-    Config(crate::config::Error, String),
-    #[error("invalid version format: {0}")]
-    Version(String),
-    #[error("{0}")]
-    Generator(#[from] schema::Error),
-}
+use crate::config::Config;
+use crate::generator::schema::Generator;
+use crate::Bindings;
 
 #[derive(Default)]
 pub struct Builder {
@@ -34,13 +24,19 @@ impl Builder {
     }
 
     /// Read configuration file and generate rust files from terraform providers.
-    pub fn generate(&mut self) -> Result<Bindings, Error> {
-        let config_path = self.config_path.take().ok_or(Error::MissingConfigFile)?;
-        let cfg = Config::from_file(&config_path).map_err(|err| Error::Config(err, config_path))?;
+    pub fn generate(&mut self) -> Result<Bindings> {
+        let config_path = self
+            .config_path
+            .take()
+            .ok_or(anyhow!("missing config path"))?;
+        let cfg = Config::from_file(&config_path)
+            .with_context(|| format!("failed to read config from file {config_path}"))?;
+        let providers = cfg.providers().context("failed to parse providers")?;
 
         let schema = Generator::default()
-            .providers(cfg.providers().map_err(Error::Version)?)
-            .generate(std::env::var("OUT_DIR").unwrap())?;
+            .providers(providers)
+            .generate(std::env::var("OUT_DIR").unwrap())
+            .context("failed to generate rust code from schema")?;
 
         Ok(Bindings { schema })
     }

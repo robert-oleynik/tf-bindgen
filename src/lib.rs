@@ -2,11 +2,9 @@ pub mod app;
 pub mod builder;
 pub mod config;
 mod construct;
-pub mod dependency;
 pub mod generator;
 pub mod model;
 pub mod stack;
-pub mod version;
 
 use std::path::Path;
 
