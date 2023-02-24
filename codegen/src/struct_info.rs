@@ -53,10 +53,10 @@ impl StructInfo {
                     C: ::tf_bindgen::Construct,
                 {
                     pub fn create(
-                        scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>,
+                        scope: &::std::rc::Rc<C>,
                         name: impl ::std::convert::Into<::std::string::String>) -> #builder_ident<C>
                     {
-                        #builder_ident::new(scope.as_ref().clone(), name)
+                        #builder_ident::new(scope.clone(), name)
                     }
                 }
 
@@ -94,8 +94,8 @@ impl StructInfo {
                 where
                     C: ::tf_bindgen::Construct,
                 {
-                    pub fn create(scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>) -> #builder_ident<C> {
-                        #builder_ident::new(scope.as_ref().clone())
+                    pub fn create(scope: &::std::rc::Rc<C>) -> #builder_ident<C> {
+                        #builder_ident::new(scope.clone())
                     }
                 }
             ),
