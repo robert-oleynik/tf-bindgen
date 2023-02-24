@@ -16,9 +16,9 @@ impl Stack {
     ///
     /// - `app` App to deploy stack in.
     /// - `name` Name of the stack.
-    pub fn new(app: impl AsRef<App>, name: impl Into<String>) -> Rc<Self> {
+    pub fn new(app: &App, name: impl Into<String>) -> Rc<Self> {
         let name = name.into();
-        let app = app.as_ref().clone();
+        let app = app.clone();
         app.add_stack(&name);
         Rc::new(Self { app, name })
     }
