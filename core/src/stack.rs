@@ -5,7 +5,7 @@ use crate::construct::Construct;
 
 /// Top-level construct. Used as an abstract layer between resources/constructs and apps.
 pub struct Stack {
-    app: Rc<App>,
+    app: App,
     name: String,
 }
 
@@ -16,13 +16,14 @@ impl Stack {
     ///
     /// - `app` App to deploy stack in.
     /// - `name` Name of the stack.
-    pub fn new(app: Rc<App>, name: String) -> Rc<Self> {
+    pub fn new(app: App, name: String) -> Rc<Self> {
+        app.add_stack(&name);
         Rc::new(Self { app, name })
     }
 }
 
 impl Construct for Stack {
-    fn app(&self) -> Rc<App> {
+    fn app(&self) -> App {
         self.app.clone()
     }
 

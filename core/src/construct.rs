@@ -1,10 +1,8 @@
-use std::rc::Rc;
-
 use crate::app::App;
 
 pub trait Construct {
     /// Returns the app this construct is assigned to.
-    fn app(&self) -> Rc<App>;
+    fn app(&self) -> App;
 
     /// Returns the name of the root stack.
     fn stack(&self) -> &str;

@@ -1,23 +1,31 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::{collections::HashMap, rc::Rc};
 
-use terraform_schema::document::{Meta, Metadata, Resource};
+use terraform_schema::document::{Meta, Metadata, Provider, Resource};
 use terraform_schema::Document;
 
+struct Config {
+    stacks: HashMap<String, Document>,
+}
+
+#[derive(Clone)]
 pub struct App {
-    stacks: HashMap<String, RefCell<Document>>,
+    config: Rc<RefCell<Config>>,
 }
 
 impl App {
     /// Create a new app with `name`.
-    pub fn new() -> Rc<Self> {
-        Rc::new(Self {
-            stacks: HashMap::default(),
-        })
+    pub fn new() -> Self {
+        Self {
+            config: Rc::new(RefCell::new(Config {
+                stacks: HashMap::default(),
+            })),
+        }
     }
 
     /// Used to create a new stack with name `stack_name`.
-    pub fn add_stack(&mut self, stack_name: impl Into<String>) {
+    pub fn add_stack(&self, stack_name: impl Into<String>) {
+        let mut this = self.config.borrow_mut();
         let stack_name = stack_name.into();
         let document = Document {
             meta: Meta {
@@ -31,21 +39,17 @@ impl App {
             provider: HashMap::default(),
             resource: HashMap::default(),
         };
-        self.stacks.insert(stack_name, RefCell::new(document));
+        this.stacks.insert(stack_name, document);
     }
 
-    /// Used to add  a resource to the root document.
+    /// Used to add a resource to the root document of the stack with `stack_name`.
     ///
     /// # Parameters
     ///
-    /// - `stack_name` Name of the stack deploy in
+    /// - `stack_name` Name of the stack to add resource to.
     /// - `resource_type` Type of the resource object
     /// - `name` Name of the resource object
     /// - `resource` Resource configuration
-    ///
-    /// # Panics
-    ///
-    /// Will panic if document of stack `name` was already borrowed.
     pub fn add_resource(
         &self,
         stack_name: impl AsRef<str>,
@@ -53,10 +57,12 @@ impl App {
         name: impl Into<String>,
         resource: Resource,
     ) {
+        let mut this = self.config.borrow_mut();
         let stack_name = stack_name.as_ref();
-        let mut stack = self
-            .stack_mut(stack_name)
-            .expect(&format!("no stack with name `{stack_name}`",));
+        let stack = this
+            .stacks
+            .get_mut(stack_name)
+            .expect(&format!("no stack with name `{stack_name}`"));
         let resource_type = resource_type.into();
         if !stack.resource.contains_key(&resource_type) {
             stack
@@ -70,24 +76,33 @@ impl App {
             .insert(name.into(), resource);
     }
 
-    /// Will borrow document of stack `name` and returns `None` if no such stack exists.
+    /// Used to add a provider to stack's document.
     ///
-    /// # Panics
+    /// # Parameters
     ///
-    /// Will panic if the document already is borrowed as a mutable reference.
-    pub fn stack(&self, name: impl AsRef<str>) -> Option<Ref<'_, Document>> {
-        self.stacks.get(name.as_ref()).map(|inner| inner.borrow())
-    }
-
-    /// Will borrow a mutable reference to document of stack `name` and return `None` if no such
-    /// stack exists.
-    ///
-    /// # Panics
-    ///
-    /// Will panic if the document already is borrowed.
-    pub fn stack_mut(&self, name: impl AsRef<str>) -> Option<RefMut<'_, Document>> {
-        self.stacks
-            .get(name.as_ref())
-            .map(|inner| inner.borrow_mut())
+    /// - `stack_name` Name of the stack to add provider to.
+    /// - `provider_type` Type of the provider to add configuration to.
+    /// - `config` provider configuration.
+    pub fn add_provider(
+        &self,
+        stack_name: impl AsRef<str>,
+        provider_type: impl Into<String>,
+        provider: Provider,
+    ) {
+        let mut this = self.config.borrow_mut();
+        let stack_name = stack_name.as_ref();
+        let stack = this
+            .stacks
+            .get_mut(stack_name)
+            .expect(&format!("no stack with name `{stack_name}`"));
+        let provider_type = provider_type.into();
+        if !stack.provider.contains_key(&provider_type) {
+            stack.provider.insert(provider_type.clone(), Vec::new());
+        }
+        stack
+            .provider
+            .get_mut(&provider_type)
+            .unwrap()
+            .push(provider)
     }
 }

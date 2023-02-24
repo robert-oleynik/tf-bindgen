@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-type Provider = serde_json::Map<String, serde_json::Value>;
+pub type Provider = serde_json::Map<String, serde_json::Value>;
 
 #[derive(Deserialize, Serialize)]
 pub struct Document {

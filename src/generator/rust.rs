@@ -41,7 +41,7 @@ impl From<&Schema> for GenerationResult {
 
 impl From<&Provider> for ProviderResult {
     fn from(schema: &Provider) -> Self {
-        // TODO: generate provider
+        let declaration = provider_to_construct(&schema.provider.block);
         let resources = schema
             .resource_schemas
             .iter()
@@ -57,7 +57,7 @@ impl From<&Provider> for ProviderResult {
             .map(ConstructResult::from)
             .collect();
         Self {
-            declaration: String::new(),
+            declaration,
             resources,
             data_sources,
         }
@@ -73,11 +73,17 @@ impl From<(&String, &Block)> for ConstructResult {
     }
 }
 
-/// Converts a given [`BlockSchema`] into a rust construct declaration.
+/// Converts a given [`Block`] into a rust construct declaration.
 fn schema_to_construct(name: &String, schema: &Block) -> String {
     let st_name = name.to_upper_camel_case();
     let codegen = tf_block_to_codegen_type(schema);
     format!("::terraform_bindgen_core::codegen::construct! {{\n\tpub {st_name} {codegen}\n}}\n",)
+}
+
+/// Converts a given [`Block`] into a rust provider declaration.
+fn provider_to_construct(schema: &Block) -> String {
+    let codegen = tf_block_to_codegen_type(schema);
+    format!("::terraform_bindgen_core::codegen::provider! {{\n\tpub Provider {codegen}\n}}\n")
 }
 
 fn tf_block_to_codegen_type(block: &Block) -> String {

@@ -26,7 +26,7 @@ impl Bindings {
         std::fs::create_dir_all(&provider_dir)?;
         let result = GenerationResult::from(&self.schema);
         let mut root_content = String::new();
-        for (name, provider) in result.providers.iter() {
+        for (name, provider) in result.providers.into_iter() {
             let name = name.split('/').last().unwrap();
             let provider_dir = provider_dir.join(name);
             let resource_dir = provider_dir.join("resource");
@@ -56,7 +56,8 @@ impl Bindings {
                 })
                 .map(|name: std::io::Result<_>| Ok(format!("mod {};\n", name?)))
                 .collect::<std::io::Result<_>>()?;
-            let content = "pub mod resource {\n".to_string()
+            let content = provider.declaration
+                + "pub mod resource {\n"
                 + &resources
                 + "}\npub mod data {\n"
                 + &data_sources

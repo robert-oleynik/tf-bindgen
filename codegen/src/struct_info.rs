@@ -8,6 +8,7 @@ use syn::{Attribute, Ident, Type};
 /// All types of structs to create.
 pub enum StructType {
     Construct,
+    Provider,
     Inner,
 }
 
@@ -63,7 +64,7 @@ impl StructInfo {
                 where
                     C: ::terraform_bindgen_core::Construct,
                 {
-                    fn app(&self) -> ::std::rc::Rc<::terraform_bindgen_core::app::App> {
+                    fn app(&self) -> ::terraform_bindgen_core::app::App {
                         self.scope.app()
                     }
 
@@ -77,6 +78,24 @@ impl StructInfo {
 
                     fn path(&self) -> ::std::string::String {
                         format!("{}/{}", self.scope.path(), self.name)
+                    }
+                }
+            ),
+            StructType::Provider => quote::quote!(
+                pub struct #name<C>
+                where
+                    C: ::terraform_bindgen_core::Construct
+                {
+                    scope: ::std::rc::Rc<C>,
+                    #( #fields ),*
+                }
+
+                impl<C> #name<C>
+                where
+                    C: ::terraform_bindgen_core::Construct,
+                {
+                    pub fn create(scope: impl ::std::convert::AsRef<::std::rc::Rc<C>>) -> #builder_ident<C> {
+                        #builder_ident::new(scope.as_ref().clone())
                     }
                 }
             ),
@@ -181,6 +200,44 @@ impl StructInfo {
                         };
                         let app = result.app();
                         app.add_resource(result.stack(), #resource_type, result.name(), resource);
+                        result
+                    }
+                }
+            ),
+            StructType::Provider => quote::quote!(
+                pub struct #builder_ident<C>
+                where
+                    C: ::terraform_bindgen_core::Construct
+                {
+                    scope: ::std::rc::Rc<C>,
+                    #( #builder_fields ),*
+                }
+
+                impl<C> #builder_ident<C>
+                where
+                    C: ::terraform_bindgen_core::Construct
+                {
+                    #( #builder_setters )*
+
+                    pub fn new(
+                        scope: ::std::rc::Rc<C>,
+                    ) -> Self {
+                        Self {
+                            scope,
+                            #( #builder_field_names: None ),*
+                        }
+                    }
+
+                    pub fn build(&mut self) -> #name<C> {
+                        use ::terraform_bindgen_core::Construct;
+                        let result = #name {
+                            scope: self.scope.clone(),
+                            #( #builder_fields_assign ),*
+                        };
+                        let mut config = ::terraform_bindgen_core::json::Map::new();
+                        #( #builder_fields_value )*
+                        let app = self.scope.app();
+                        app.add_provider(self.scope.stack(), #resource_type, config);
                         result
                     }
                 }
