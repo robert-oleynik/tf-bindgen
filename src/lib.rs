@@ -1,8 +1,11 @@
+pub mod app;
 pub mod builder;
 pub mod config;
+mod construct;
 pub mod dependency;
 pub mod generator;
 pub mod model;
+pub mod stack;
 pub mod version;
 
 use std::path::Path;
@@ -11,6 +14,11 @@ use generator::rust::GenerationResult;
 use terraform_schema::provider;
 
 pub use crate::builder::Builder;
+pub use construct::Construct;
+pub use serde;
+pub use serde_json as json;
+pub use terraform_bindgen_codegen as codegen;
+pub use terraform_schema as schema;
 
 pub struct Bindings {
     schema: provider::Schema,

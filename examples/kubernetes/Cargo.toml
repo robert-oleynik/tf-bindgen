@@ -7,4 +7,4 @@ edition = "2021"
 terraform-bindgen = { path = "../../", version = "0.1.0" }
 
 [dependencies]
-terraform-bindgen-core = { version = "0.1.0", path = "../../core" }
+terraform-bindgen = { version = "0.1.0", path = "../../" }

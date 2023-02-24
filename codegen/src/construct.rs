@@ -13,7 +13,6 @@ pub struct Construct {
     pub fields: Punctuated<Field, Token![,]>,
 }
 
-#[derive(Debug)]
 pub struct Field {
     pub attributes: Vec<Attribute>,
     pub auto: Option<Token![auto]>,
@@ -22,7 +21,6 @@ pub struct Field {
     pub colon_token: Token![:],
 }
 
-#[derive(Debug)]
 pub enum FieldType {
     Object {
         fields: Punctuated<Field, Token![,]>,
