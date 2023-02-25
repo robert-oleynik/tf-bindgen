@@ -8,7 +8,7 @@ use syn::{Attribute, Ident, Type};
 /// All types of structs to create.
 pub enum StructType {
     Construct,
-    Provider,
+    Provider(String),
     Inner,
 }
 
@@ -81,7 +81,7 @@ impl StructInfo {
                     }
                 }
             ),
-            StructType::Provider => quote::quote!(
+            StructType::Provider(_) => quote::quote!(
                 pub struct #name<C>
                 where
                     C: ::tf_bindgen::Construct
@@ -200,44 +200,47 @@ impl StructInfo {
                     }
                 }
             ),
-            StructType::Provider => quote::quote!(
-                pub struct #builder_ident<C>
-                where
-                    C: ::tf_bindgen::Construct
-                {
-                    scope: ::std::rc::Rc<C>,
-                    #( #builder_fields ),*
-                }
-
-                impl<C> #builder_ident<C>
-                where
-                    C: ::tf_bindgen::Construct
-                {
-                    #( #builder_setters )*
-
-                    pub fn new(
+            StructType::Provider(url) => {
+                let url = url.split("/").last().unwrap();
+                quote::quote!(
+                    pub struct #builder_ident<C>
+                    where
+                        C: ::tf_bindgen::Construct
+                    {
                         scope: ::std::rc::Rc<C>,
-                    ) -> Self {
-                        Self {
-                            scope,
-                            #( #builder_field_names: None ),*
+                        #( #builder_fields ),*
+                    }
+
+                    impl<C> #builder_ident<C>
+                    where
+                        C: ::tf_bindgen::Construct
+                    {
+                        #( #builder_setters )*
+
+                        pub fn new(
+                            scope: ::std::rc::Rc<C>,
+                        ) -> Self {
+                            Self {
+                                scope,
+                                #( #builder_field_names: None ),*
+                            }
+                        }
+
+                        pub fn build(&mut self) -> #name<C> {
+                            use ::tf_bindgen::Construct;
+                            let result = #name {
+                                scope: self.scope.clone(),
+                                #( #builder_fields_assign ),*
+                            };
+                            let mut config = ::tf_bindgen::json::Map::new();
+                            #( #builder_fields_value )*
+                            let app = self.scope.app();
+                            app.add_provider(self.scope.stack(), #url, config);
+                            result
                         }
                     }
-
-                    pub fn build(&mut self) -> #name<C> {
-                        use ::tf_bindgen::Construct;
-                        let result = #name {
-                            scope: self.scope.clone(),
-                            #( #builder_fields_assign ),*
-                        };
-                        let mut config = ::tf_bindgen::json::Map::new();
-                        #( #builder_fields_value )*
-                        let app = self.scope.app();
-                        app.add_provider(self.scope.stack(), #resource_type, config);
-                        result
-                    }
-                }
-            ),
+                )
+            }
             StructType::Inner => quote::quote!(
                 pub struct #builder_ident {
                     #( #builder_fields ),*

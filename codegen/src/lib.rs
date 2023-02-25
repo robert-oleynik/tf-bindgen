@@ -40,6 +40,7 @@ pub fn construct(tokens: TokenStream) -> TokenStream {
 ///
 /// ```rust
 /// terraform_bindgen_codegen::provider! {
+///		"registry.terraform.io/hashicorp/kubernetes"
 ///		pub Provider {
 ///			config_path: String
 ///		}
@@ -47,11 +48,12 @@ pub fn construct(tokens: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro]
 pub fn provider(tokens: TokenStream) -> TokenStream {
-    use construct::Construct;
+    use construct::Provider;
 
-    let construct = parse_macro_input!(tokens as Construct);
-    let mut struct_info: Vec<_> = construct.into();
-    struct_info[0].struct_type = StructType::Provider;
+    let provider = parse_macro_input!(tokens as Provider);
+    let url = provider.provider.value();
+    let mut struct_info: Vec<_> = provider.construct.into();
+    struct_info[0].struct_type = StructType::Provider(url);
 
     quote::quote!(
         #(

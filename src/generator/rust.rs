@@ -29,7 +29,7 @@ impl From<&Schema> for GenerationResult {
                 if let Some(schemas) = provider_schemas {
                     let iter = schemas
                         .iter()
-                        .map(|(name, schema)| (name.clone(), ProviderResult::from(schema)));
+                        .map(|(name, schema)| (name.clone(), ProviderResult::from((name, schema))));
                     providers.extend(iter);
                 }
                 Self { providers }
@@ -39,9 +39,9 @@ impl From<&Schema> for GenerationResult {
     }
 }
 
-impl From<&Provider> for ProviderResult {
-    fn from(schema: &Provider) -> Self {
-        let declaration = provider_to_construct(&schema.provider.block);
+impl From<(&String, &Provider)> for ProviderResult {
+    fn from((name, schema): (&String, &Provider)) -> Self {
+        let declaration = provider_to_construct(name, &schema.provider.block);
         let resources = schema
             .resource_schemas
             .iter()
@@ -81,9 +81,9 @@ fn schema_to_construct(name: &String, schema: &Block) -> String {
 }
 
 /// Converts a given [`Block`] into a rust provider declaration.
-fn provider_to_construct(schema: &Block) -> String {
+fn provider_to_construct(name: &str, schema: &Block) -> String {
     let codegen = tf_block_to_codegen_type(schema);
-    format!("::tf_bindgen::codegen::provider! {{\n\tpub Provider {codegen}\n}}\n")
+    format!("::tf_bindgen::codegen::provider! {{\n\t\"{name}\"\n\tpub Provider {codegen}\n}}\n")
 }
 
 fn tf_block_to_codegen_type(block: &Block) -> String {

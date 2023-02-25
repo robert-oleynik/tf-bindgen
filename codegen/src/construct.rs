@@ -6,6 +6,11 @@ use syn::{Attribute, Ident, LitInt, Token, Type};
 
 use crate::struct_info::{FieldInfo, StructInfo, StructType};
 
+pub struct Provider {
+    pub provider: syn::LitStr,
+    pub construct: Construct,
+}
+
 pub struct Construct {
     pub pub_token: Token![pub],
     pub name: syn::Ident,
@@ -156,6 +161,15 @@ impl FieldType {
             FieldType::Set { nested } => nested.custom_type_fields(),
             FieldType::Type { .. } => None,
         }
+    }
+}
+
+impl Parse for Provider {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            provider: input.parse()?,
+            construct: input.parse()?,
+        })
     }
 }
 
