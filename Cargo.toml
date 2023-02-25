@@ -8,9 +8,6 @@ members = [
 	"codegen",
 	"schema"
 ]
-exclude = [
-	"examples/kubernetes"
-]
 
 [dependencies]
 anyhow = "1.0.69"

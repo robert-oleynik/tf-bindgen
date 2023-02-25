@@ -152,7 +152,11 @@ fn attribute_to_param((name, attribute): (&String, &Attribute)) -> String {
     let opt = opt.unwrap_or(false);
     let req = req.unwrap_or(comp && !opt);
     let auto = match comp {
-        true => "auto ",
+        true => "@auto ",
+        false => "",
+    };
+    let opt_str = match opt {
+        true => "@opt ",
         false => "",
     };
     assert_ne!(opt, req, "Expected opt xor req");
@@ -160,7 +164,7 @@ fn attribute_to_param((name, attribute): (&String, &Attribute)) -> String {
         Attribute::Type { r#type, .. } => tf_type_to_codegen_type(r#type),
         Attribute::NestedType { nested_type: _, .. } => todo!(),
     };
-    format!("{desc}\t\t{auto}{name}: {ty},\n")
+    format!("{desc}\t\t{auto}{opt_str}{name}: {ty},\n")
 }
 
 fn tf_type_to_codegen_type(ty: &attribute::Type) -> String {
@@ -188,9 +192,7 @@ fn tf_type_to_codegen_type(ty: &attribute::Type) -> String {
 
 /// Replace rust keywords with raw names.
 fn fix_ident(input: &str) -> &str {
-    if input.is_empty() {
-        panic!("ident: '{input}' is empty")
-    }
+    assert!(!input.is_empty(), "ident: '{input}' is empty");
     match input {
         "type" => "r#type",
         "as" => "r#as",

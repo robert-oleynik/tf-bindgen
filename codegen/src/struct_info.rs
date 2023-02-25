@@ -34,7 +34,7 @@ impl StructInfo {
         let fields = self
             .fields
             .iter()
-            .filter(|(_, info)| !info.computed)
+            .filter(|(_, info)| !info.computed || info.is_optional())
             .map(|(ident, info)| (ident, &info.ty))
             .map(|(ident, ty)| quote::quote!(pub #ident: #ty));
         match &self.struct_type {
@@ -120,30 +120,26 @@ impl StructInfo {
         let resource_type = self.name.to_string().to_snake_case();
         let builder_ident = format!("{}Builder", self.name);
         let builder_ident = Ident::new(&builder_ident, Span::call_site());
-        let builder_fields = self
+        let fields = self
             .fields
             .iter()
-            .filter(|(_, info)| !info.computed)
+            .filter(|(_, info)| !info.computed || info.is_optional());
+        let builder_fields = fields
+            .clone()
             .map(|(ident, info)| (ident, info.as_builder_field_type()))
             .map(|(ident, ty)| quote::quote!(#ident: #ty));
-        let builder_field_names = self
-            .fields
-            .iter()
-            .filter(|(_, info)| !info.computed)
-            .map(|(ident, _)| ident);
-        let builder_setters = self
-            .fields
-            .iter()
-            .filter(|(_, info)| !info.computed)
+        let builder_field_names = fields.clone().map(|(ident, _)| ident);
+        let builder_setters = fields
+            .clone()
+            .filter(|(_, info)| !info.computed || info.is_optional())
             .map(FieldInfo::as_builder_setter);
-        let builder_fields_assign = self
-            .fields
-            .iter()
-            .filter(|(_, info)| !info.computed)
+        let builder_fields_assign = fields
+            .clone()
+            .filter(|(_, info)| !info.computed || info.is_optional())
             .map(FieldInfo::into_builder_assign);
         let builder_fields_value =
-            self.fields
-                .iter()
+            fields
+                .clone()
                 .filter(|(_, info)| !info.computed)
                 .map(|(ident, _)| {
                     let ident_str = ident.to_string();
@@ -290,10 +286,25 @@ impl FieldInfo {
         let attributes = &this.attributes;
         let ty = &this.ty;
         if this.is_optional() {
+            let ty = match ty {
+                Type::Path(path) => path
+                    .path
+                    .segments
+                    .iter()
+                    .last()
+                    .map(|seg| match &seg.arguments {
+                        syn::PathArguments::AngleBracketed(args) => {
+                            args.args.iter().next().unwrap()
+                        }
+                        _ => unimplemented!(),
+                    })
+                    .unwrap(),
+                _ => unimplemented!(),
+            };
             quote::quote!(
                 #( #attributes )*
                 pub fn #name(&mut self, value: impl Into<#ty>) -> &mut Self {
-                    self.#name = value.into();
+                    self.#name = Some(value.into());
                     self
                 }
             )

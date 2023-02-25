@@ -60,7 +60,7 @@ impl Bindings {
                     std::fs::write(path, &construct.declaration)?;
                     Ok(construct.name.clone())
                 })
-                .map(|name: std::io::Result<_>| Ok(format!("mod {};\n", name?)))
+                .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))
                 .collect::<std::io::Result<_>>()?;
             let content = provider.declaration
                 + "pub mod resource {\n"

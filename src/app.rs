@@ -83,6 +83,7 @@ impl App {
             .map(|(_, document)| serde_json::to_string_pretty(document))
             .ok_or(anyhow!("no stack with name `{}", name.as_ref()))?
             .context("failed to parse stack document")?;
+        println!("{document}");
         std::fs::write(path.as_ref(), document).with_context(|| {
             format!(
                 "failed to write stack document to file at `{}`",

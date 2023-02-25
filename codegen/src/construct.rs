@@ -15,7 +15,8 @@ pub struct Construct {
 
 pub struct Field {
     pub attributes: Vec<Attribute>,
-    pub auto: Option<Token![auto]>,
+    pub auto: bool,
+    pub opt: bool,
     pub name: syn::Ident,
     pub ty: FieldType,
     pub colon_token: Token![:],
@@ -51,14 +52,16 @@ impl Into<Vec<StructInfo>> for Construct {
             fields: self
                 .fields
                 .iter()
-                .map(|field| field.as_field_info(&name_str))
+                .filter(|f| !f.auto || f.opt)
+                .map(|f| f.as_field_info(&name_str))
                 .collect(),
         };
         let mut result = vec![this];
         let iter = self
             .fields
             .iter()
-            .flat_map(|field| field.as_struct_info(&name_str));
+            .filter(|f| !f.auto || f.opt)
+            .flat_map(|f| f.as_struct_info(&name_str));
         result.extend(iter);
         result
     }
@@ -76,14 +79,15 @@ impl Field {
                 name: ident,
                 fields: fields
                     .clone()
-                    .map(|field| field.as_field_info(&ident_str))
+                    .filter(|f| !f.auto || f.opt)
+                    .map(|f| f.as_field_info(&ident_str))
                     .collect(),
             };
             result.push(this);
             result.extend(
                 fields
-                    .filter(|field| field.auto.is_none())
-                    .flat_map(|field| field.as_struct_info(&ident_str)),
+                    .filter(|f| !f.auto || f.opt)
+                    .flat_map(|f| f.as_struct_info(&ident_str)),
             );
         }
         result
@@ -94,34 +98,50 @@ impl Field {
         let name = format!("{parent_type}{name}");
         let ident = self.name.clone();
         let info = FieldInfo {
-            computed: self.auto.is_some(),
+            computed: self.auto,
             attributes: self.attributes.clone(),
-            ty: self.ty.as_type(&name),
+            ty: self.ty.as_type(&name, self.opt),
         };
         (ident, info)
     }
 }
 
 impl FieldType {
-    fn as_type(&self, custom_type_name: &str) -> syn::Type {
+    fn as_type(&self, custom_type_name: &str, optional: bool) -> syn::Type {
         let tokens = match self {
             FieldType::Object { .. } => {
                 let custom_type_ident = Ident::new(custom_type_name, Span::call_site());
                 quote::quote!(#custom_type_ident)
             }
             FieldType::Map { key_ty, nested } => {
-                let ty = nested.as_type(custom_type_name);
+                let ty = nested.as_type(custom_type_name, false);
                 quote::quote!(::std::collections::HashMap<#key_ty, #ty>)
             }
-            FieldType::List { nested, .. } => {
-                let ty = nested.as_type(custom_type_name);
-                quote::quote!(::std::vec::Vec<#ty>)
+            FieldType::List { nested, min, max } => {
+                let ty = nested.as_type(custom_type_name, false);
+                match (min, max) {
+                    (Some(min), Some(max))
+                        if min.base10_parse::<usize>().unwrap() == 1
+                            && max.base10_parse::<usize>().unwrap() == 1 =>
+                    {
+                        quote::quote!(#ty)
+                    }
+                    (_, Some(max)) if max.base10_parse::<usize>().unwrap() == 1 => {
+                        quote::quote!(::std::option::Option<#ty>)
+                    }
+                    _ => quote::quote!(::std::vec::Vec<#ty>),
+                }
             }
             FieldType::Set { nested } => {
-                let ty = nested.as_type(custom_type_name);
+                let ty = nested.as_type(custom_type_name, false);
                 quote::quote!(::std::collections::HashSet<#ty>)
             }
             FieldType::Type { ty } => quote::quote!(#ty),
+        };
+        let tokens = if optional {
+            quote::quote!(::std::option::Option<#tokens>)
+        } else {
+            tokens
         };
         syn::parse2(tokens).unwrap()
     }
@@ -156,13 +176,24 @@ impl Parse for Construct {
 impl Parse for Field {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let attributes = input.call(Attribute::parse_outer)?;
-        let auto = input.parse()?;
+        let mut auto = false;
+        let mut opt = false;
+        while input.peek(Token![@]) {
+            let _: Token![@] = input.parse()?;
+            let i: Ident = input.parse()?;
+            match format!("{i}").as_str() {
+                "auto" => auto = true,
+                "opt" => opt = true,
+                _ => panic!("unknown modifier `@{i}`"),
+            }
+        }
         let name = input.parse()?;
         let colon_token = input.parse()?;
         let ty = input.parse()?;
         Ok(Self {
             attributes,
             auto,
+            opt,
             name,
             colon_token,
             ty,
