@@ -66,6 +66,23 @@ impl App {
         self.validate_stack(self.config.borrow().stacks.keys().next().unwrap())
     }
 
+    /// Will initialize terraform deployment at `path. Requires a synthesized stack (see
+    /// [`Self::synth`]).
+    pub fn init(&self, path: impl AsRef<Path>) -> Result<()> {
+        let terraform = Command::new("terraform")
+            .arg(format!("-chdir={}", path.as_ref().to_str().unwrap()))
+            .arg("apply")
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()
+            .context("failed to run terraform")?;
+        if !terraform.status.success() {
+            bail!("failed to initialize infrastructure");
+        }
+        Ok(())
+    }
+
     /// Will write deployment of stack with `name` to a file at `path`.
     ///
     /// # Errors
@@ -109,6 +126,8 @@ impl App {
         let stack_file = format!("{stack_dir}/cdk.tf.json");
         self.synth(name, stack_file)
             .with_context(|| format!("failed synthesize stack with name `{name}`"))?;
+        self.init(&stack_dir)
+            .with_context(|| format!("failed to initialize stack with name `{name}`"))?;
         let terraform = Command::new("terraform")
             .arg(format!("-chdir={stack_dir}"))
             .arg("apply")
@@ -144,6 +163,8 @@ impl App {
         let stack_file = format!("{stack_dir}/cdk.tf.json");
         self.synth(name, stack_file)
             .with_context(|| format!("failed synthesize stack with name `{name}`"))?;
+        self.init(&stack_dir)
+            .with_context(|| format!("failed to initialize stack with name `{name}`"))?;
         let terraform = Command::new("terraform")
             .arg(format!("-chdir={stack_dir}"))
             .arg("validate")
