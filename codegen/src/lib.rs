@@ -52,8 +52,9 @@ pub fn provider(tokens: TokenStream) -> TokenStream {
 
     let provider = parse_macro_input!(tokens as Provider);
     let url = provider.provider.value();
+    let version = provider.version.value();
     let mut struct_info: Vec<_> = provider.construct.into();
-    struct_info[0].struct_type = StructType::Provider(url);
+    struct_info[0].struct_type = StructType::Provider(url, version);
 
     quote::quote!(
         #(

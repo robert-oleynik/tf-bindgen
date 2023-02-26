@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 use std::{collections::HashMap, rc::Rc};
 
 use anyhow::{anyhow, bail, Context, Result};
-use tf_schema::document::{Meta, Metadata, Provider, Resource};
+use tf_schema::document::{Meta, Metadata, Provider, ProviderConfig, Resource, Terraform};
 use tf_schema::Document;
 
 struct Config {
@@ -71,7 +71,7 @@ impl App {
     pub fn init(&self, path: impl AsRef<Path>) -> Result<()> {
         let terraform = Command::new("terraform")
             .arg(format!("-chdir={}", path.as_ref().to_str().unwrap()))
-            .arg("apply")
+            .arg("init")
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -100,7 +100,6 @@ impl App {
             .map(|(_, document)| serde_json::to_string_pretty(document))
             .ok_or(anyhow!("no stack with name `{}", name.as_ref()))?
             .context("failed to parse stack document")?;
-        println!("{document}");
         std::fs::write(path.as_ref(), document).with_context(|| {
             format!(
                 "failed to write stack document to file at `{}`",
@@ -195,6 +194,9 @@ impl App {
                 },
                 outputs: HashMap::default(),
             },
+            terraform: Terraform {
+                required_providers: HashMap::default(),
+            },
             provider: HashMap::default(),
             resource: HashMap::default(),
         };
@@ -246,21 +248,37 @@ impl App {
         &self,
         stack_name: impl AsRef<str>,
         provider_type: impl Into<String>,
+        provider_version: impl Into<String>,
         provider: Provider,
     ) {
+        let provider_type = provider_type.into();
+        let provider_name = provider_type.split('/').last().unwrap().to_string();
         let mut this = self.config.borrow_mut();
         let stack_name = stack_name.as_ref();
         let stack = this
             .stacks
             .get_mut(stack_name)
             .expect(&format!("no stack with name `{stack_name}`"));
-        let provider_type = provider_type.into();
-        if !stack.provider.contains_key(&provider_type) {
-            stack.provider.insert(provider_type.clone(), Vec::new());
+        if !stack
+            .terraform
+            .required_providers
+            .contains_key(&provider_name)
+        {
+            let provider = ProviderConfig {
+                source: provider_type,
+                version: provider_version.into(),
+            };
+            stack
+                .terraform
+                .required_providers
+                .insert(provider_name.clone(), provider);
+        }
+        if !stack.provider.contains_key(&provider_name) {
+            stack.provider.insert(provider_name.clone(), Vec::new());
         }
         stack
             .provider
-            .get_mut(&provider_type)
+            .get_mut(&provider_name)
             .unwrap()
             .push(provider)
     }

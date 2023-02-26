@@ -32,12 +32,13 @@ impl Builder {
         let cfg = Config::from_file(&config_path)
             .with_context(|| format!("failed to read config from file {config_path}"))?;
         let providers = cfg.providers().context("failed to parse providers")?;
+        let version = providers.iter().cloned().collect();
 
         let schema = Generator::default()
             .providers(providers)
             .generate(std::env::var("OUT_DIR").unwrap())
             .context("failed to generate rust code from schema")?;
 
-        Ok(Bindings { schema })
+        Ok(Bindings { schema, version })
     }
 }

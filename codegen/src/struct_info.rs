@@ -8,7 +8,7 @@ use syn::{Attribute, Ident, Type};
 /// All types of structs to create.
 pub enum StructType {
     Construct,
-    Provider(String),
+    Provider(String, String),
     Inner,
 }
 
@@ -81,7 +81,7 @@ impl StructInfo {
                     }
                 }
             ),
-            StructType::Provider(_) => quote::quote!(
+            StructType::Provider(_, _) => quote::quote!(
                 pub struct #name<C>
                 where
                     C: ::tf_bindgen::Construct
@@ -200,8 +200,7 @@ impl StructInfo {
                     }
                 }
             ),
-            StructType::Provider(url) => {
-                let url = url.split("/").last().unwrap();
+            StructType::Provider(url, version) => {
                 quote::quote!(
                     pub struct #builder_ident<C>
                     where
@@ -235,7 +234,7 @@ impl StructInfo {
                             let mut config = ::tf_bindgen::json::Map::new();
                             #( #builder_fields_value )*
                             let app = self.scope.app();
-                            app.add_provider(self.scope.stack(), #url, config);
+                            app.add_provider(self.scope.stack(), #url, #version, config);
                             result
                         }
                     }

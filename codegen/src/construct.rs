@@ -8,6 +8,7 @@ use crate::struct_info::{FieldInfo, StructInfo, StructType};
 
 pub struct Provider {
     pub provider: syn::LitStr,
+    pub version: syn::LitStr,
     pub construct: Construct,
 }
 
@@ -116,7 +117,7 @@ impl FieldType {
         let tokens = match self {
             FieldType::Object { .. } => {
                 let custom_type_ident = Ident::new(custom_type_name, Span::call_site());
-                quote::quote!(#custom_type_ident)
+                quote::quote!(::std::option::Option<#custom_type_ident>)
             }
             FieldType::Map { key_ty, nested } => {
                 let ty = nested.as_type(custom_type_name, false);
@@ -166,8 +167,13 @@ impl FieldType {
 
 impl Parse for Provider {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let provider = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let version = input.parse()?;
+        let _: Token![,] = input.parse()?;
         Ok(Self {
-            provider: input.parse()?,
+            provider,
+            version,
             construct: input.parse()?,
         })
     }

@@ -8,8 +8,20 @@ pub type Provider = serde_json::Map<String, serde_json::Value>;
 pub struct Document {
     #[serde(rename = "//")]
     pub meta: Meta,
+    pub terraform: Terraform,
     pub provider: HashMap<String, Vec<Provider>>,
     pub resource: HashMap<String, HashMap<String, Resource>>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Terraform {
+    pub required_providers: HashMap<String, ProviderConfig>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ProviderConfig {
+    pub source: String,
+    pub version: String,
 }
 
 #[derive(Deserialize, Serialize)]

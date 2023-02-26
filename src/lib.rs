@@ -6,9 +6,10 @@ pub mod generator;
 pub mod model;
 pub mod stack;
 
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use generator::rust::GenerationResult;
+use semver::VersionReq;
 use tf_schema::provider;
 
 pub use crate::builder::Builder;
@@ -19,6 +20,7 @@ pub use tf_bindgen_codegen as codegen;
 pub use tf_schema as schema;
 
 pub struct Bindings {
+    version: HashMap<String, VersionReq>,
     schema: provider::Schema,
 }
 
@@ -30,7 +32,7 @@ impl Bindings {
     ) -> std::io::Result<()> {
         let provider_dir = base_path.as_ref().join("provider");
         std::fs::create_dir_all(&provider_dir)?;
-        let result = GenerationResult::from(&self.schema);
+        let result = GenerationResult::new(&self.schema, &self.version);
         let mut root_content = String::new();
         for (name, provider) in result.providers.into_iter() {
             let name = name.split('/').last().unwrap();
@@ -49,7 +51,7 @@ impl Bindings {
                     std::fs::write(path, &construct.declaration)?;
                     Ok(construct.name.clone())
                 })
-                .map(|name: std::io::Result<_>| Ok(format!("mod {};\n", name?)))
+                .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))
                 .collect::<std::io::Result<_>>()?;
             let data_sources: String = provider
                 .data_sources

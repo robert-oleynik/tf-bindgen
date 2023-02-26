@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use heck::ToUpperCamelCase;
+use semver::{Comparator, Op, VersionReq};
 use tf_schema::provider::{attribute, Attribute, Block, Provider, Schema, Type};
 
 pub struct GenerationResult {
@@ -18,8 +19,8 @@ pub struct ConstructResult {
     pub declaration: String,
 }
 
-impl From<&Schema> for GenerationResult {
-    fn from(schema: &Schema) -> Self {
+impl GenerationResult {
+    pub fn new(schema: &Schema, version: &HashMap<String, VersionReq>) -> Self {
         match schema {
             Schema::V1_0 {
                 provider_schemas,
@@ -27,9 +28,18 @@ impl From<&Schema> for GenerationResult {
             } => {
                 let mut providers = HashMap::new();
                 if let Some(schemas) = provider_schemas {
-                    let iter = schemas
-                        .iter()
-                        .map(|(name, schema)| (name.clone(), ProviderResult::from((name, schema))));
+                    let iter = schemas.iter().map(|(name, schema)| {
+                        let n = name.split('/').last().unwrap();
+                        let version = version
+                            .get(n)
+                            .unwrap()
+                            .comparators
+                            .iter()
+                            .cloned()
+                            .map(cargo_simplify_version)
+                            .fold(String::from(">=0.0.0"), |text, c| text + "," + &c);
+                        (name.clone(), ProviderResult::new(name, &version, schema))
+                    });
                     providers.extend(iter);
                 }
                 Self { providers }
@@ -39,9 +49,9 @@ impl From<&Schema> for GenerationResult {
     }
 }
 
-impl From<(&String, &Provider)> for ProviderResult {
-    fn from((name, schema): (&String, &Provider)) -> Self {
-        let declaration = provider_to_construct(name, &schema.provider.block);
+impl ProviderResult {
+    pub fn new(name: &str, version: &str, schema: &Provider) -> Self {
+        let declaration = provider_to_construct(name, version, &schema.provider.block);
         let resources = schema
             .resource_schemas
             .iter()
@@ -81,9 +91,9 @@ fn schema_to_construct(name: &String, schema: &Block) -> String {
 }
 
 /// Converts a given [`Block`] into a rust provider declaration.
-fn provider_to_construct(name: &str, schema: &Block) -> String {
+fn provider_to_construct(name: &str, version: &str, schema: &Block) -> String {
     let codegen = tf_block_to_codegen_type(schema);
-    format!("::tf_bindgen::codegen::provider! {{\n\t\"{name}\"\n\tpub Provider {codegen}\n}}\n")
+    format!("::tf_bindgen::codegen::provider! {{\n\t\"{name}\":\"{version}\",\n\tpub Provider {codegen}\n}}\n")
 }
 
 fn tf_block_to_codegen_type(block: &Block) -> String {
@@ -232,5 +242,39 @@ fn fix_ident(input: &str) -> &str {
         "while" => "r#while",
         "yield" => "r#yield",
         _ => input,
+    }
+}
+
+pub fn cargo_simplify_version(constraint: Comparator) -> String {
+    let major = constraint.major;
+    let minor = constraint.minor.unwrap_or(0);
+    let patch = constraint.patch.unwrap_or(0);
+    assert!(
+        constraint.pre.is_empty(),
+        "pre release constraints are not supported"
+    );
+    match constraint.op {
+        Op::Tilde if constraint.minor.is_some() => {
+            format!(">={major}{minor}{patch},<{major}{}.0", minor + 1)
+        }
+        Op::Caret if major == 0 && constraint.minor.is_none() => ">=0.0.0,<1.0.0".to_string(),
+        Op::Caret if major == 0 && minor == 0 && constraint.patch.is_some() => {
+            format!(">=0.0.{patch},<0.0.{}", patch + 1)
+        }
+        Op::Caret if major == 0 => {
+            format!(">=0.{minor}.0,<0.{}.0", minor + 1)
+        }
+        Op::Wildcard if constraint.minor.is_some() => {
+            format!(">={major}.{minor}.0,<{major}.{}.0", minor + 1)
+        }
+        Op::Tilde | Op::Caret | Op::Wildcard => {
+            format!(">={major}.{minor}.{patch},<{}.0.0", major + 1)
+        }
+        Op::Exact => format!("={major}.{minor}.{patch}"),
+        Op::Greater => format!(">{major}.{minor}.{patch}"),
+        Op::GreaterEq => format!(">={major}.{minor}.{patch}"),
+        Op::Less => format!("<{major}.{minor}.{patch}"),
+        Op::LessEq => format!("<={major}.{minor}.{patch}"),
+        _ => unimplemented!(),
     }
 }
