@@ -181,7 +181,7 @@ fn tf_type_to_codegen_type(ty: &attribute::Type) -> String {
     match ty {
         attribute::Type::String => "::std::string::String".to_string(),
         attribute::Type::Bool => "bool".to_string(),
-        attribute::Type::Number => "usize".to_string(),
+        attribute::Type::Number => "i32".to_string(),
         attribute::Type::Dynamic => "::tf_bindgen::json::Value".to_string(),
         attribute::Type::Set(ty) => format!("[] => {}", tf_type_to_codegen_type(ty)),
         attribute::Type::Map(ty) => {

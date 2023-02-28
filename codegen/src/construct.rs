@@ -117,7 +117,7 @@ impl FieldType {
         let tokens = match self {
             FieldType::Object { .. } => {
                 let custom_type_ident = Ident::new(custom_type_name, Span::call_site());
-                quote::quote!(::std::option::Option<#custom_type_ident>)
+                quote::quote!(#custom_type_ident)
             }
             FieldType::Map { key_ty, nested } => {
                 let ty = nested.as_type(custom_type_name, false);
