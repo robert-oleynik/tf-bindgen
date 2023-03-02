@@ -12,8 +12,8 @@ This library will replicate the features of [CDK for Terraform] but for Rust.
 
 Required tools:
 
-- `cargo`
-- `terraform`
+-   `cargo`
+-   `terraform`
 
 ## Usage
 
@@ -29,12 +29,12 @@ to the following Terraform HCL code:
 
 ```hcl
 terraform {
-	required_providers = {
-		kubernetes = {
-			source = "hashicorp/kubernetes"
-			version = "2.18.1"
-		}
-	}
+    required_providers = {
+        kubernetes = {
+            source = "hashicorp/kubernetes"
+            version = "2.18.1"
+        }
+    }
 }
 
 resource "kubernetes_pod" "nginx" {
@@ -196,7 +196,7 @@ fn main() {
 		// Generate the rust bindings
 		.generate()
 		.expect();
-	
+
 	let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 	bindings.write_to_file(out_dir, "terraform.rs");
 }
@@ -229,13 +229,14 @@ The configured providers can be build by running `cargo build`.
 **v0.1:**
 
 <!-- Upcoming changes -->
-- [x] generate Rust code for Terraform provider
-	- [x] implement data blocks
-	- [x] implement resource blocks
-- [x] implement Terraform cli wrapper as part of `App`
-- [ ] add support for variable references
-- [ ] add support for outputs
-- [ ] generate Rust code from Terraform modules
+
+-   [x] generate Rust code for Terraform provider
+    -   [x] implement data blocks
+    -   [x] implement resource blocks
+-   [x] implement Terraform cli wrapper as part of `App`
+-   [ ] add support for variable references
+-   [ ] add support for outputs
+-   [ ] generate Rust code from Terraform modules
 
 ## Limitations
 
