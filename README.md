@@ -38,19 +38,19 @@ terraform {
 }
 
 resource "kubernetes_pod" "nginx" {
-	metadata {
-		name = "nginx"
-	}
-	spec {
-		container {
-			image = "nginx"
-			name = "nginx"
+    metadata {
+        name = "nginx"
+    }
+    spec {
+        container {
+            image = "nginx"
+            name = "nginx"
 
-			port {
-				container_port = 80
-			}
-		}
-	}
+            port {
+                container_port = 80
+            }
+        }
+    }
 }
 ```
 
@@ -85,8 +85,8 @@ use tf_bindgen::app::App;
 use tf_bindgen::stack::Stack;
 
 fn main() {
-	let app = App::new();
-	let stack = Stack::new(&app, "nginx");
+    let app = App::new();
+    let stack = Stack::new(&app, "nginx");
 }
 ```
 
@@ -97,7 +97,7 @@ We can create new Kubernetes Pod using a builder provided by the bindings:
 use tf_kubernetes::kubernetes::resource::kubernetes_pod::*;
 
 fn main() {
-	// ...
+    // ...
     let meta = KubernetesPodMetadata::builder().name("nginx").build();
     let port = KubernetesPodSpecContainerPort::builder()
         .container_port(80)
@@ -124,8 +124,8 @@ main:
 // ...
 
 fn main() {
-	// ...
-	app.deploy()
+    // ...
+    app.deploy()
 }
 ```
 
@@ -137,8 +137,8 @@ use tf_bindgen::stack::Stack;
 use tf_kubernetes::kubernetes::resource::kubernetes_pod::*;
 
 fn main() {
-	let app = App::new();
-	let stack = Stack::new(&app, "nginx");
+    let app = App::new();
+    let stack = Stack::new(&app, "nginx");
 
     let meta = KubernetesPodMetadata::builder().name("nginx").build();
     let port = KubernetesPodSpecContainerPort::builder()
@@ -157,7 +157,7 @@ fn main() {
         .spec(spec)
         .build();
 
-	app.deploy(false)
+    app.deploy(false)
 }
 ```
 
@@ -188,17 +188,17 @@ file inside our build directory. This file is used to bundle the generated provi
 use std::path::PathBuf;
 
 fn main() {
-	println!("cargo:rerun-if-changed=terraform.toml");
+    println!("cargo:rerun-if-changed=terraform.toml");
 
-	let bindings = tf_bindgen::Builder::default()
-		// File to read the providers from
-		.config("terraform.toml")
-		// Generate the rust bindings
-		.generate()
-		.expect();
+    let bindings = tf_bindgen::Builder::default()
+        // File to read the providers from
+        .config("terraform.toml")
+        // Generate the rust bindings
+        .generate()
+        .expect();
 
-	let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-	bindings.write_to_file(out_dir, "terraform.rs");
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    bindings.write_to_file(out_dir, "terraform.rs");
 }
 ```
 
