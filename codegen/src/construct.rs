@@ -106,25 +106,29 @@ impl Field {
         let info = FieldInfo {
             computed: self.auto,
             attributes: self.attributes.clone(),
-            ty: self.ty.as_type(&name, self.opt),
+            ty: self.ty.as_type(&name, self.opt, false),
         };
         (ident, info)
     }
 }
 
 impl FieldType {
-    fn as_type(&self, custom_type_name: &str, optional: bool) -> syn::Type {
+    fn as_type(&self, custom_type_name: &str, optional: bool, nested: bool) -> syn::Type {
         let tokens = match self {
             FieldType::Object { .. } => {
                 let custom_type_ident = Ident::new(custom_type_name, Span::call_site());
-                quote::quote!(#custom_type_ident)
+                if nested {
+                    quote::quote!(#custom_type_ident)
+                } else {
+                    quote::quote!(::std::option::Option<#custom_type_ident>)
+                }
             }
             FieldType::Map { key_ty, nested } => {
-                let ty = nested.as_type(custom_type_name, false);
+                let ty = nested.as_type(custom_type_name, false, true);
                 quote::quote!(::std::collections::HashMap<#key_ty, #ty>)
             }
             FieldType::List { nested, min, max } => {
-                let ty = nested.as_type(custom_type_name, false);
+                let ty = nested.as_type(custom_type_name, false, true);
                 match (min, max) {
                     (Some(min), Some(max))
                         if min.base10_parse::<usize>().unwrap() == 1
@@ -139,12 +143,12 @@ impl FieldType {
                 }
             }
             FieldType::Set { nested } => {
-                let ty = nested.as_type(custom_type_name, false);
+                let ty = nested.as_type(custom_type_name, false, true);
                 quote::quote!(::std::collections::HashSet<#ty>)
             }
             FieldType::Type { ty } => quote::quote!(#ty),
         };
-        let tokens = if optional {
+        let tokens = if optional && !nested {
             quote::quote!(::std::option::Option<#tokens>)
         } else {
             tokens

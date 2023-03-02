@@ -326,6 +326,8 @@ impl FieldInfo {
     pub fn into_builder_assign((name, this): (&Ident, &FieldInfo)) -> TokenStream {
         if this.is_optional() {
             quote::quote!(#name: self.#name.clone())
+        } else if this.is_vec() {
+            quote::quote!(#name: self.#name.clone().unwrap_or(Vec::new()))
         } else {
             let message = format!("expected missing field `{name}`");
             quote::quote!(#name: self.#name.clone().expect(#message))
@@ -342,6 +344,20 @@ impl FieldInfo {
                 .last()
                 .iter()
                 .any(|seg| seg.ident == "Option"),
+            _ => false,
+        }
+    }
+
+    /// Returns true if `self.ty` if of type [`::std::vec::Vec`].
+    pub fn is_vec(&self) -> bool {
+        match &self.ty {
+            Type::Path(path) => path
+                .path
+                .segments
+                .iter()
+                .last()
+                .iter()
+                .any(|seg| seg.ident == "Vec"),
             _ => false,
         }
     }
