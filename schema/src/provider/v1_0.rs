@@ -5,24 +5,45 @@ use serde::ser::{SerializeMap, SerializeTuple};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Attribute {
-    Type {
-        r#type: Type,
-        description: Option<String>,
-        required: Option<bool>,
-        optional: Option<bool>,
-        computed: Option<bool>,
-        sensitive: Option<bool>,
+pub struct Provider {
+    pub provider: Schema,
+    pub resource_schemas: HashMap<String, Schema>,
+    pub data_source_schemas: HashMap<String, Schema>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Schema {
+    pub version: i64,
+    pub block: Block,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Block {
+    pub attributes: HashMap<String, Attribute>,
+    pub block_types: HashMap<String, Type>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "nesting_mode")]
+pub enum Type {
+    #[serde(rename = "single", alias = "map")]
+    Single { block: Box<Block> },
+    #[serde(rename = "list", alias = "set")]
+    List {
+        block: Box<Block>,
+        min_items: Option<usize>,
+        max_items: Option<usize>,
     },
-    NestedType {
-        nested_type: NestedType,
-        description: Option<String>,
-        required: Option<bool>,
-        optional: Option<bool>,
-        computed: Option<bool>,
-        sensitive: Option<bool>,
-    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Attribute {
+    pub r#type: BlockType,
+    pub description: Option<String>,
+    pub required: Option<bool>,
+    pub optional: Option<bool>,
+    pub computed: Option<bool>,
+    pub sensitive: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -32,15 +53,15 @@ pub struct NestedType {
 }
 
 #[derive(Debug, Clone)]
-pub enum Type {
+pub enum BlockType {
     String,
     Bool,
     Number,
     Dynamic,
-    Set(Box<Type>),
-    Map(Box<Type>),
-    List(Box<Type>),
-    Object(HashMap<String, Type>),
+    Set(Box<BlockType>),
+    Map(Box<BlockType>),
+    List(Box<BlockType>),
+    Object(HashMap<String, BlockType>),
 }
 
 #[derive(Debug)]
@@ -52,35 +73,35 @@ pub enum NestedTypeNesting {
     Map,
 }
 
-impl Serialize for Type {
+impl Serialize for BlockType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            Type::String => serializer.serialize_str("string"),
-            Type::Bool => serializer.serialize_str("bool"),
-            Type::Number => serializer.serialize_str("number"),
-            Type::Dynamic => serializer.serialize_str("dynamic"),
-            Type::Set(inner) => {
+            BlockType::String => serializer.serialize_str("string"),
+            BlockType::Bool => serializer.serialize_str("bool"),
+            BlockType::Number => serializer.serialize_str("number"),
+            BlockType::Dynamic => serializer.serialize_str("dynamic"),
+            BlockType::Set(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("set")?;
                 tup.serialize_element(inner)?;
                 tup.end()
             }
-            Type::List(inner) => {
+            BlockType::List(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("list")?;
                 tup.serialize_element(inner)?;
                 tup.end()
             }
-            Type::Map(inner) => {
+            BlockType::Map(inner) => {
                 let mut tup = serializer.serialize_tuple(2)?;
                 tup.serialize_element("map")?;
                 tup.serialize_element(inner)?;
                 tup.end()
             }
-            Type::Object(fields) => {
+            BlockType::Object(fields) => {
                 let mut map = serializer.serialize_map(Some(fields.len()))?;
                 for (key, value) in fields {
                     map.serialize_entry(key, value)?;
@@ -91,7 +112,7 @@ impl Serialize for Type {
     }
 }
 
-impl<'de> Deserialize<'de> for Type {
+impl<'de> Deserialize<'de> for BlockType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -99,7 +120,7 @@ impl<'de> Deserialize<'de> for Type {
         struct Visitor;
 
         impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Type;
+            type Value = BlockType;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str(r#"one of `"string"`, `"bool"`, `"number"`, `"dynamic"`, `["set", object]`, `["map", object]`, `["list", object]` or `["object", object]` "#)
@@ -110,10 +131,10 @@ impl<'de> Deserialize<'de> for Type {
                 E: serde::de::Error,
             {
                 Ok(match v {
-                    "string" => Type::String,
-                    "bool" => Type::Bool,
-                    "number" => Type::Number,
-                    "dynamic" => Type::Dynamic,
+                    "string" => BlockType::String,
+                    "bool" => BlockType::Bool,
+                    "number" => BlockType::Number,
+                    "dynamic" => BlockType::Dynamic,
                     _ => return Err(serde::de::Error::invalid_value(Unexpected::Str(v), &self)),
                 })
             }
@@ -140,18 +161,18 @@ impl<'de> Deserialize<'de> for Type {
                     .next_element()?
                     .ok_or(serde::de::Error::invalid_length(0, &self))?;
                 if name == "object" {
-                    let attr: HashMap<String, Type> = seq
+                    let attr: HashMap<String, BlockType> = seq
                         .next_element()?
                         .ok_or(serde::de::Error::invalid_length(1, &self))?;
-                    return Ok(Type::Object(attr));
+                    return Ok(BlockType::Object(attr));
                 }
-                let attr: Type = seq
+                let attr: BlockType = seq
                     .next_element()?
                     .ok_or(serde::de::Error::invalid_length(1, &self))?;
                 Ok(match name.as_str() {
-                    "set" => Type::Set(Box::new(attr)),
-                    "map" => Type::Map(Box::new(attr)),
-                    "list" => Type::List(Box::new(attr)),
+                    "set" => BlockType::Set(Box::new(attr)),
+                    "map" => BlockType::Map(Box::new(attr)),
+                    "list" => BlockType::List(Box::new(attr)),
                     _ => {
                         return Err(serde::de::Error::invalid_value(
                             Unexpected::Str(&name),
@@ -229,13 +250,13 @@ impl<'de> Deserialize<'de> for NestedTypeNesting {
 
 #[cfg(test)]
 mod tests {
-    use super::{NestedTypeNesting, Type};
+    use super::{BlockType, NestedTypeNesting};
 
     #[test]
     fn serialize_attr_type_string() {
         let v = serde_json::json!("string");
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::String = attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::String = attr {
             return;
         }
         panic!()
@@ -244,8 +265,8 @@ mod tests {
     #[test]
     fn serialize_attr_type_bool() {
         let v = serde_json::json!("bool");
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Bool = attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Bool = attr {
             return;
         }
         panic!()
@@ -254,8 +275,8 @@ mod tests {
     #[test]
     fn serialize_attr_type_number() {
         let v = serde_json::json!("number");
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Number = attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Number = attr {
             return;
         }
         panic!()
@@ -264,8 +285,8 @@ mod tests {
     #[test]
     fn serialize_attr_type_dynamic() {
         let v = serde_json::json!("dynamic");
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Dynamic = attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Dynamic = attr {
             return;
         }
         panic!()
@@ -274,9 +295,9 @@ mod tests {
     #[test]
     fn serialize_attr_type_set() {
         let v = serde_json::json!(["set", "string"]);
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Set(attr) = attr {
-            if let Type::String = *attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Set(attr) = attr {
+            if let BlockType::String = *attr {
                 return;
             }
         }
@@ -286,9 +307,9 @@ mod tests {
     #[test]
     fn serialize_attr_type_map() {
         let v = serde_json::json!(["map", "string"]);
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Map(attr) = attr {
-            if let Type::String = *attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Map(attr) = attr {
+            if let BlockType::String = *attr {
                 return;
             }
         }
@@ -298,9 +319,9 @@ mod tests {
     #[test]
     fn serialize_attr_type_list() {
         let v = serde_json::json!(["list", "string"]);
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::List(attr) = attr {
-            if let Type::String = *attr {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::List(attr) = attr {
+            if let BlockType::String = *attr {
                 return;
             }
         }
@@ -310,9 +331,9 @@ mod tests {
     #[test]
     fn serialize_attr_type_object() {
         let v = serde_json::json!(["object", { "name": "string" }]);
-        let attr: Type = serde_json::from_value(v).unwrap();
-        if let Type::Object(attr) = attr {
-            if let Some(Type::String) = attr.get("name") {
+        let attr: BlockType = serde_json::from_value(v).unwrap();
+        if let BlockType::Object(attr) = attr {
+            if let Some(BlockType::String) = attr.get("name") {
                 return;
             }
         }
