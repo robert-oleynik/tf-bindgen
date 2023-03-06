@@ -19,8 +19,8 @@ pub struct Schema {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Block {
-    pub attributes: HashMap<String, Attribute>,
-    pub block_types: HashMap<String, Type>,
+    pub attributes: Option<HashMap<String, Attribute>>,
+    pub block_types: Option<HashMap<String, Type>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
