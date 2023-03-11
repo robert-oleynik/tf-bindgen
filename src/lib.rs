@@ -3,7 +3,6 @@ pub mod builder;
 pub mod codegen;
 pub mod config;
 mod construct;
-pub mod generator;
 pub mod model;
 pub mod stack;
 

@@ -147,18 +147,8 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "tf-bindgen-codegen",
  "tf-schema",
  "toml",
-]
-
-[[package]]
-name = "tf-bindgen-codegen"
-version = "0.1.0"
-dependencies = [
- "heck",
- "quote",
- "syn",
 ]
 
 [[package]]
