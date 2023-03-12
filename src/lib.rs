@@ -5,6 +5,7 @@ pub mod config;
 mod construct;
 pub mod model;
 pub mod stack;
+pub mod value;
 
 use std::collections::HashMap;
 use std::path::Path;
