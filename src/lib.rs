@@ -10,7 +10,7 @@ pub mod value;
 use std::collections::HashMap;
 use std::path::Path;
 
-use codegen::generator::Generator;
+use codegen::Generator;
 use semver::VersionReq;
 use tf_schema::provider;
 
@@ -34,10 +34,10 @@ impl Bindings {
         let provider_dir = base_path.as_ref().join("provider");
         std::fs::create_dir_all(&provider_dir)?;
 
-        let result = Generator::from((&self.schema, &self.version));
+        let result = Generator::from_schema(self.schema, self.version);
         let mut root_content = String::new();
-        for provider in result.provider() {
-            let name = &provider.provider_type;
+        for provider in result.providers {
+            let name = &provider.provider.name();
             let name = name.split('/').last().unwrap();
             let provider_dir = provider_dir.join(name);
             let resource_dir = provider_dir.join("resource");
@@ -46,28 +46,28 @@ impl Bindings {
             std::fs::create_dir_all(&data_dir)?;
 
             let resources: String = provider
-                .resource_constructs
+                .resources
                 .iter()
                 .map(|construct| {
-                    let filename = format!("{}.rs", construct.resource_type);
+                    let filename = format!("{}.rs", construct.ty());
                     let path = resource_dir.join(filename);
-                    std::fs::write(path, &construct.as_binding())?;
-                    Ok(construct.resource_type.clone())
+                    std::fs::write(path, &construct.gen_rust())?;
+                    Ok(construct.ty())
                 })
                 .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))
                 .collect::<std::io::Result<_>>()?;
             let data_sources: String = provider
-                .data_source_constructs
+                .data_sources
                 .iter()
                 .map(|construct| {
-                    let filename = format!("{}.rs", construct.resource_type);
+                    let filename = format!("{}.rs", construct.ty());
                     let path = data_dir.join(filename);
-                    std::fs::write(path, &construct.as_binding())?;
-                    Ok(construct.resource_type.clone())
+                    std::fs::write(path, &construct.gen_rust())?;
+                    Ok(construct.ty())
                 })
                 .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))
                 .collect::<std::io::Result<_>>()?;
-            let content = provider.as_binding()
+            let content = provider.provider.gen_rust()
                 + "pub mod resource {\n"
                 + &resources
                 + "}\npub mod data {\n"
