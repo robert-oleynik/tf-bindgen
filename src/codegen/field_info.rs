@@ -20,7 +20,9 @@ impl FieldInfo {
     pub fn gen_field(&self) -> String {
         let name = self.name();
         let type_name = self.field_type();
-        format!("{name}: {type_name}")
+        format!(
+            r#"#[serde(serialize_with = "::tf_bindgen::value::serialize_rc_cell")] {name}: {type_name}"#
+        )
     }
 
     pub fn gen_builder_field(&self) -> String {

@@ -71,14 +71,21 @@ impl StructInfo {
             .join(",\n");
         match self.ty {
             StructType::Provider { .. } => format!(
-                r#"pub struct {prefix}{name} {{
+                r#"#[derive(::std::clone::Clone, ::tf_bindgen::serde::Serialize)]
+				#[serde(crate = "::tf_bindgen::serde")]
+				pub struct {prefix}{name} {{
+					#[serde(skip_serializing)]
 					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
 					{fields}
 				}}"#
             ),
             StructType::Construct { .. } => format!(
-                r#"pub struct {prefix}{name} {{
+                r#"#[derive(::std::clone::Clone, ::tf_bindgen::serde::Serialize)]
+				#[serde(crate = "::tf_bindgen::serde")]
+				pub struct {prefix}{name} {{
+					#[serde(skip_serializing)]
 					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
+					#[serde(skip_serializing)]
 					__m_name: ::std::string::String,
 					{fields}
 				}}"#
@@ -139,7 +146,7 @@ impl StructInfo {
         match &self.ty {
             StructType::Provider { .. } => format!(
                 r#"impl {prefix}{name} {{
-					pub fn create<C: ::tf_bindgen::Construct>(
+					pub fn create<C: ::tf_bindgen::Construct + 'static>(
 						scope: ::std::rc::Rc<C>,
 					) -> {prefix}{name}Builder {{
 						{prefix}{name}Builder {{
@@ -239,7 +246,7 @@ impl StructInfo {
                 if field.is_optional() {
                     format!(r#"{name}: ::tf_bindgen::value::Cell::new("{id}", self.{name}.clone())"#)
                 } else {
-                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{id}", self.{name}.clone().expect())"#)
+                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{id}", self.{name}.clone().expect("field `{name}`"))"#)
                 }
             })
             .join(",\n");
@@ -251,7 +258,7 @@ impl StructInfo {
                 let name = field.name();
                 format!(
                     r#"
-						let value = ::tf_bindgen::json::to_value(&this.{name}).unwrap();
+						let value = ::tf_bindgen::json::to_value(&*this.{name}).unwrap();
 						config.insert("{name}".to_string(), value);
 					"#
                 )
@@ -266,7 +273,7 @@ impl StructInfo {
 							__m_scope: self.__m_scope.clone(),
 							{assign}
 						}};
-						let mut config = ::std::collections::HashMap::new();
+						let mut config = ::tf_bindgen::json::Map::new();
 						{config}
 						this.__m_scope
 							.app()
@@ -311,7 +318,7 @@ impl StructInfo {
 					pub fn build(&mut self) -> {prefix}{name} {{
 						{prefix}{name} {{
 							{assign}
-						}};
+						}}
 					}}
 				}}"#
             ),
