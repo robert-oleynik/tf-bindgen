@@ -147,7 +147,7 @@ impl StructInfo {
             StructType::Provider { .. } => format!(
                 r#"impl {prefix}{name} {{
 					pub fn create<C: ::tf_bindgen::Construct + 'static>(
-						scope: ::std::rc::Rc<C>,
+						scope: &::std::rc::Rc<C>,
 					) -> {prefix}{name}Builder {{
 						{prefix}{name}Builder {{
 							__m_scope: scope.clone(),

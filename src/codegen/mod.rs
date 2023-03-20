@@ -35,11 +35,14 @@ impl Generator {
             Schema::V1_0 { provider_schemas } => provider_schemas
                 .iter()
                 .map(|(name, schema)| {
+                    let name = name.split("/").last().unwrap();
                     let version = versions
                         .iter()
                         .find(|(n, _)| *n == name)
+                        .unwrap()
+                        .1
+                        .comparators
                         .iter()
-                        .flat_map(|(_, req)| &req.comparators)
                         .map(|comp| cargo_simplify_version(comp.clone()))
                         .join(",");
                     let provider = StructInfo::from_provider(name, version, &schema.provider.block);
