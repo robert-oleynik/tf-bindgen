@@ -72,9 +72,16 @@ macro_rules! value_from {
 
 value_from!(bool);
 value_from!(String);
+value_from!(i64);
 value_from!(serde_json::Value);
 value_from!(T: HashSet<T>);
 value_from!(T: Vec<T>);
+
+impl<'a> From<&'a str> for Value<String> {
+    fn from(value: &'a str) -> Self {
+        Self::Value(value.to_string())
+    }
+}
 
 impl<T> From<HashMap<String, T>> for Value<HashMap<String, T>> {
     fn from(value: HashMap<String, T>) -> Self {
