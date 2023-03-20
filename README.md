@@ -85,7 +85,7 @@ use tf_bindgen::app::App;
 use tf_bindgen::stack::Stack;
 
 fn main() {
-    let app = App::new();
+    let app = App::default();
     let stack = Stack::new(&app, "nginx");
 }
 ```
@@ -94,22 +94,23 @@ We can create new Kubernetes Pod using a builder provided by the bindings:
 
 ```rust
 // ...
-use tf_kubernetes::kubernetes::resource::kubernetes_pod::*;
+use tf_kubernetes::kubernetes::resource::kubernetes_pod::{self, *};
 
 fn main() {
     // ...
-    let meta = KubernetesPodMetadata::builder().name("nginx").build();
-    let port = KubernetesPodSpecContainerPort::builder()
+    let meta = kubernetes_pod::Metadata::builder().name("nginx").build();
+    let port = kubernetes_pod::SpecContainerPort::builder()
         .container_port(80)
         .build();
-    let container = KubernetesPodSpecContainer::builder()
+    let container = kubernetes_pod::SpecContainer::builder()
         .name("nginx")
         .image("nginx")
         .port(vec![port])
         .build();
-    let spec = KubernetesPodSpec::builder()
+    let spec = kubernetes_pod::Spec::builder()
         .container(vec![container])
         .build();
+
     KubernetesPod::create(&stack, "nginx")
         .metadata(meta)
         .spec(spec)
@@ -125,7 +126,7 @@ main:
 
 fn main() {
     // ...
-    app.deploy()
+    app.deploy(false);
 }
 ```
 
@@ -134,30 +135,31 @@ The resulting `main.rs`:
 ```rust
 use tf_bindgen::app::App;
 use tf_bindgen::stack::Stack;
-use tf_kubernetes::kubernetes::resource::kubernetes_pod::*;
+use tf_kubernetes::kubernetes::resource::kubernetes_pod::{self, *};
 
 fn main() {
-    let app = App::new();
+    let app = App::default();
     let stack = Stack::new(&app, "nginx");
 
-    let meta = KubernetesPodMetadata::builder().name("nginx").build();
-    let port = KubernetesPodSpecContainerPort::builder()
-        .container_port(80_usize)
+    let meta = kubernetes_pod::Metadata::builder().name("nginx").build();
+    let port = kubernetes_pod::SpecContainerPort::builder()
+        .container_port(80)
         .build();
-    let container = KubernetesPodSpecContainer::builder()
+    let container = kubernetes_pod::SpecContainer::builder()
         .name("nginx")
         .image("nginx")
-        .port(vec![Some(port)])
+        .port(vec![port])
         .build();
-    let spec = KubernetesPodSpec::builder()
-        .container(vec![Some(container)])
+    let spec = kubernetes_pod::Spec::builder()
+        .container(vec![container])
         .build();
+
     KubernetesPod::create(&stack, "nginx")
         .metadata(meta)
         .spec(spec)
         .build();
 
-    app.deploy(false)
+    app.deploy();
 }
 ```
 
