@@ -290,12 +290,12 @@ impl FieldInfo {
     pub fn from_type(path: &Path, name: impl Into<String>, field: &Type) -> Self {
         let name = name.into();
         let req = match field {
-            Type::Single { .. } => true,
+            Type::Single { .. } => false,
             Type::List {
-                min_items,
+                min_items: Some(1),
                 max_items: Some(1),
                 ..
-            } => min_items.unwrap_or(0) == 1,
+            } => true,
             Type::List { .. } => false,
         };
         let type_name = path.type_name() + &name.to_upper_camel_case();
