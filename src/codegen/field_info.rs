@@ -47,7 +47,10 @@ impl FieldInfo {
 
     /// Name of the reference used by terraform.
     pub fn path_ref(&self) -> String {
-        self.path.path_ref() + "." + &self.name
+        self.path
+            .segments()
+            .chain(Some(&self.name).into_iter())
+            .join(".")
     }
 
     fn ty(&self) -> String {

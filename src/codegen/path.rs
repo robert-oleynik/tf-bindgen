@@ -1,5 +1,4 @@
 use heck::ToUpperCamelCase;
-use itertools::Itertools;
 
 #[derive(Clone, Debug)]
 pub struct Path {
@@ -34,9 +33,8 @@ impl Path {
             .collect()
     }
 
-    /// Concatenate path segments with dot separator.
-    pub fn path_ref(&self) -> String {
-        self.segments.iter().join(".")
+    pub fn segments(&self) -> impl Iterator<Item = &String> {
+        self.segments.iter()
     }
 
     pub fn push(&mut self, path: impl Into<String>) {

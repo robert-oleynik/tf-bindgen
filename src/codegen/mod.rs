@@ -51,12 +51,13 @@ impl Generator {
                         .iter()
                         .map(|(name, schema)| {
                             let path = Path::empty();
-                            let nested = Nested::from_schema(&path, &schema.block).0;
+                            let this_path = Path::new(vec![name.to_string()]);
+                            let fields = Fields::from_schema(&this_path, &schema.block).0;
+                            let nested = Nested::from_schema(&this_path, &schema.block).0;
                             let ty = StructType::Construct {
                                 ty: name.clone(),
                                 nested,
                             };
-                            let fields = Fields::from_schema(&path, &schema.block).0;
                             StructInfo::builder()
                                 .ty(ty)
                                 .name(name.clone())
@@ -71,12 +72,13 @@ impl Generator {
                         .iter()
                         .map(|(name, schema)| {
                             let path = Path::new(vec!["data".to_string()]);
-                            let nested = Nested::from_schema(&path, &schema.block).0;
+                            let this_path = Path::new(vec!["data".to_string(), name.to_string()]);
+                            let nested = Nested::from_schema(&this_path, &schema.block).0;
                             let ty = StructType::Construct {
                                 ty: name.clone(),
                                 nested,
                             };
-                            let fields = Fields::from_schema(&path, &schema.block).0;
+                            let fields = Fields::from_schema(&this_path, &schema.block).0;
                             StructInfo::builder()
                                 .ty(ty)
                                 .name(name.clone())

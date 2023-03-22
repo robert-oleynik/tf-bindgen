@@ -268,7 +268,6 @@ impl StructInfo {
             StructType::Provider { ty, ver, .. } => format!(
                 r#"impl {prefix}{name}Builder {{
 					pub fn build(&mut self) -> {prefix}{name} {{
-						use ::tf_bindgen::Construct;
 						let this = {prefix}{name} {{
 							__m_scope: self.__m_scope.clone(),
 							{assign}
