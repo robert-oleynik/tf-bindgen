@@ -21,7 +21,7 @@ impl FieldInfo {
         let name = self.name();
         let type_name = self.field_type();
         format!(
-            r#"#[serde(serialize_with = "::tf_bindgen::value::serialize_rc_cell")] {name}: {type_name}"#
+            r#"#[serde(serialize_with = "::tf_bindgen::value::serialize_rc_cell")] pub {name}: {type_name}"#
         )
     }
 
@@ -50,25 +50,27 @@ impl FieldInfo {
         self.path.path_ref() + "." + &self.name
     }
 
-    /// Type of field used inside of resources and nested types. Will be wrapped inside of
-    /// [`std::rc::Rc`] and [`crate::value::Cell`].
-    pub fn field_type(&self) -> String {
+    fn ty(&self) -> String {
         let type_name = &self.type_name;
-        let type_name = if self.is_optional() {
+        if self.is_optional() {
             format!("::std::option::Option<{type_name}>")
         } else {
             type_name.to_string()
-        };
+        }
+    }
+
+    /// Type of field used inside of resources and nested types. Will be wrapped inside of
+    /// [`std::rc::Rc`] and [`crate::value::Cell`].
+    pub fn field_type(&self) -> String {
+        let type_name = self.ty();
         format!("::std::rc::Rc<::tf_bindgen::value::Cell<{type_name}>>")
     }
 
     /// Type of field used inside of a builder. Will be wrapped inside of [`crate::value::Value`].
     pub fn builder_type(&self) -> String {
-        let type_name = &self.type_name;
+        let type_name = self.ty();
         format!("::tf_bindgen::value::Value<{type_name}>")
     }
-
-    /// Type used
 
     /// Generate doc comment for field builder. Will be empty if node description was specified.
     pub fn doc_str(&self) -> String {

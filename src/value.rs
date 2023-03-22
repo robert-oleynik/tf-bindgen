@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 use std::rc::Rc;
 
 use serde::{Serialize, Serializer};
@@ -41,6 +42,14 @@ impl<T> Value<T> {
     }
 }
 
+impl<T> Deref for Cell<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        self.value()
+    }
+}
+
 macro_rules! value_from {
     (T: $t:ty) => {
         impl<T> From<$t> for Value<$t> {
@@ -52,6 +61,12 @@ macro_rules! value_from {
         impl<T> From<Option<$t>> for Value<Option<$t>> {
             fn from(value: Option<$t>) -> Self {
                 Self::Value(value)
+            }
+        }
+
+        impl<T> From<$t> for Value<Option<$t>> {
+            fn from(value: $t) -> Self {
+                Self::Value(Some(value))
             }
         }
     };
@@ -67,6 +82,12 @@ macro_rules! value_from {
                 Self::Value(value)
             }
         }
+
+        impl From<$t> for Value<Option<$t>> {
+            fn from(value: $t) -> Self {
+                Self::Value(Some(value))
+            }
+        }
     };
 }
 
@@ -80,6 +101,12 @@ value_from!(T: Vec<T>);
 impl<'a> From<&'a str> for Value<String> {
     fn from(value: &'a str) -> Self {
         Self::Value(value.to_string())
+    }
+}
+
+impl<'a> From<&'a str> for Value<Option<String>> {
+    fn from(value: &'a str) -> Self {
+        Self::Value(Some(value.to_string()))
     }
 }
 
@@ -108,9 +135,22 @@ impl<T: Clone> From<Option<Value<T>>> for Value<Option<T>> {
     }
 }
 
-impl<T> From<Rc<Cell<T>>> for Value<T> {
-    fn from(value: Rc<Cell<T>>) -> Self {
-        Self::Ref(value)
+impl<T: Clone> From<Option<Value<Option<T>>>> for Value<Option<T>> {
+    fn from(value: Option<Value<Option<T>>>) -> Self {
+        match value {
+            Some(Value::Value(v)) => Self::Value(v),
+            Some(Value::Ref(r)) => Self::Ref(Rc::new(Cell {
+                path: r.path.clone(),
+                value: Value::Value(r.value().clone()),
+            })),
+            None => Self::Value(None),
+        }
+    }
+}
+
+impl<T: Clone> From<&Rc<Cell<T>>> for Value<T> {
+    fn from(value: &Rc<Cell<T>>) -> Self {
+        Self::Ref(value.clone())
     }
 }
 
