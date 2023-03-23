@@ -165,6 +165,42 @@ fn main() {
 }
 ```
 
+While this syntax is powerful and allows the full flexibility of Rust, the
+syntax of Terraform's HCL is simpler and shorter.
+Using the `tf_bingen::codegen::resource!` macro, you can use the HCL syntax in Rust:
+
+```rust
+use tf_bindgen::app::App;
+use tf_bindgen::stack::Stack;
+use tf_kubernetes::kubernetes::resource::kubernetes_pod;
+use tf_kubernetes::kubernetes::Kubernetes;
+
+fn main() {
+  let app = App::default();
+  let stack = Stack::new(&app, "nginx");
+
+  tf_bindgen::codegen::resource! {
+    &stack,
+    resource "kubernetes_pod" "nginx" {
+      metadata {
+        name = "nginx"
+      }
+      spec {
+        container {
+          name = "nginx"
+          image = "nginx"
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+
+  app.deploy();
+}
+```
+
 #### Running infrastructure deployment
 
 To deploy the infrastructure run `cargo run`.
@@ -242,7 +278,7 @@ The configured providers can be build by running `cargo build`.
 - [x] implement Terraform cli wrapper as part of `App`
 - [x] add support for variable references
 - [x] generate Rust code from Terraform modules
-- [ ] add code generators to generate resource construction
+- [x] add code generator `tf_bindgen::codegen::resource`
 - [ ] add Construct derive macro
 - [ ] add support for outputs
 - [ ] create Markdown book

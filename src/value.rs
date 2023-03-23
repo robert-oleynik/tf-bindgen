@@ -110,6 +110,18 @@ impl<'a> From<&'a str> for Value<Option<String>> {
     }
 }
 
+impl<T> From<T> for Value<Vec<T>> {
+    fn from(value: T) -> Self {
+        Self::Value(vec![value])
+    }
+}
+
+impl<T> From<T> for Value<Option<Vec<T>>> {
+    fn from(value: T) -> Self {
+        Self::Value(Some(vec![value]))
+    }
+}
+
 impl<T> From<HashMap<String, T>> for Value<HashMap<String, T>> {
     fn from(value: HashMap<String, T>) -> Self {
         Self::Value(value)

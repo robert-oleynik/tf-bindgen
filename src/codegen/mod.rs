@@ -14,6 +14,8 @@ pub mod field_info;
 pub mod path;
 pub mod struct_info;
 
+pub use tf_codegen::resource;
+
 pub struct Generator {
     pub providers: Vec<Provider>,
 }
