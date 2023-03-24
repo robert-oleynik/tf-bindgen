@@ -1,5 +1,6 @@
 use heck::ToUpperCamelCase;
 
+/// Used to manage Terraform id's and construct paths.
 #[derive(Clone, Debug)]
 pub struct Path {
     segments: Vec<String>,

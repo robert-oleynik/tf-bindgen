@@ -279,8 +279,7 @@ The configured providers can be build by running `cargo build`.
 - [x] add support for variable references
 - [x] generate Rust code from Terraform modules
 - [x] add code generator `tf_bindgen::codegen::resource`
-- [ ] add Construct derive macro
-- [ ] add support for outputs
+- [x] add Construct derive macro
 - [ ] create Markdown book
 
 ## Limitations
