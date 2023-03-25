@@ -20,9 +20,7 @@ impl FieldInfo {
     pub fn gen_field(&self) -> String {
         let name = self.name();
         let type_name = self.field_type();
-        format!(
-            r#"#[serde(serialize_with = "::tf_bindgen::value::serialize_rc_cell")] pub {name}: {type_name}"#
-        )
+        format!(r#"pub {name}: {type_name}"#)
     }
 
     pub fn gen_builder_field(&self) -> String {
@@ -66,7 +64,7 @@ impl FieldInfo {
     /// [`std::rc::Rc`] and [`crate::value::Cell`].
     pub fn field_type(&self) -> String {
         let type_name = self.ty();
-        format!("::std::rc::Rc<::tf_bindgen::value::Cell<{type_name}>>")
+        format!("::tf_bindgen::value::Cell<{type_name}>")
     }
 
     /// Type of field used inside of a builder. Will be wrapped inside of [`crate::value::Value`].

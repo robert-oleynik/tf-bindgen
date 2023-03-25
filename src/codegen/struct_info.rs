@@ -199,7 +199,7 @@ impl StructInfo {
 
 				impl From<{prefix}{name}> for ::tf_bindgen::value::Value<{prefix}{name}> {{
 					fn from(value: {prefix}{name}) -> Self {{
-						Self::Value(value)
+						Self::Value {{ value: ::std::rc::Rc::new(value) }}
 					}}
 				}}"#
             ),
@@ -242,11 +242,10 @@ impl StructInfo {
             .filter(|field| !field.is_computed() || field.is_optional())
             .map(|field| {
                 let name = field.name();
-				let id = field.path_ref();
                 if field.is_optional() {
-                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{id}", self.{name}.clone())"#)
+                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone())"#)
                 } else {
-                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{id}", self.{name}.clone().expect("field `{name}`"))"#)
+                    format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone().expect("field `{name}`"))"#)
                 }
             })
             .join(",\n");
@@ -258,7 +257,7 @@ impl StructInfo {
                 let name = field.name();
                 format!(
                     r#"
-						let value = ::tf_bindgen::json::to_value(&*this.{name}).unwrap();
+						let value = ::tf_bindgen::json::to_value(&this.{name}).unwrap();
 						config.insert("{name}".to_string(), value);
 					"#
                 )
