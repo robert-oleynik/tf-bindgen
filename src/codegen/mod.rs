@@ -306,9 +306,6 @@ impl FieldInfo {
         let type_name = path.type_name() + &name.to_upper_camel_case();
         let type_name = match field {
             Type::Single { .. } => type_name,
-            Type::List {
-                max_items: Some(1), ..
-            } => type_name,
             Type::List { .. } => format!("::std::vec::Vec<{type_name}>"),
         };
         FieldInfo::builder()

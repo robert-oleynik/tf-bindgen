@@ -34,8 +34,6 @@ impl<T> Cell<T> {
 impl<T: Prepare + Clone> Prepare for Cell<T> {
     fn prepare(self, prefix: impl Into<String>) -> Self {
         let path = prefix.into();
-        let path = format!("{path}.{}", self.path);
-
         let value = if let Value::Value { value } = self.value {
             let inner: T = value.deref().clone();
             let inner = inner.prepare(&path);

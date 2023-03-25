@@ -143,6 +143,20 @@ impl StructInfo {
                 format!("{name}: None")
             })
             .join(",\n");
+        let prepare_fields = self
+            .fields
+            .iter()
+            .filter(|field| !field.is_computed() || field.is_optional())
+            .map(|field| {
+                let name = field.name();
+                format!(
+                    r#"{name}: {{
+						let path = format!("{{prefix}}.{name}");
+						self.{name}.prepare(path)
+					}}"#
+                )
+            })
+            .join(",\n");
         match &self.ty {
             StructType::Provider { .. } => format!(
                 r#"impl {prefix}{name} {{
@@ -186,6 +200,17 @@ impl StructInfo {
 					fn path(&self) -> ::std::string::String {{
 						self.__m_scope.path() + "/" + &self.__m_name
 					}}
+				}}
+
+				impl ::tf_bindgen::value::Prepare for {prefix}{name} {{
+					fn prepare(self, prefix: impl Into<::std::string::String>) -> Self {{
+						let prefix = prefix.into();
+						Self {{
+							__m_scope: self.__m_scope,
+							__m_name: self.__m_name,
+							{prepare_fields}
+						}}
+					}}
 				}}"#
             ),
             StructType::Nested => format!(
@@ -193,6 +218,15 @@ impl StructInfo {
 					pub fn builder() -> {prefix}{name}Builder {{
 						{prefix}{name}Builder {{
 							{fields}
+						}}
+					}}
+				}}
+
+				impl ::tf_bindgen::value::Prepare for {prefix}{name} {{
+					fn prepare(self, prefix: impl Into<::std::string::String>) -> Self {{
+						let prefix = prefix.into();
+						Self {{
+							{prepare_fields}
 						}}
 					}}
 				}}
@@ -288,12 +322,15 @@ impl StructInfo {
             StructType::Construct { ty, .. } => format!(
                 r#"impl {prefix}{name}Builder {{
 					pub fn build(&mut self) -> {prefix}{name} {{
+						use ::tf_bindgen::value::Prepare;
 						use ::tf_bindgen::Construct;
 						let this = {prefix}{name} {{
 							__m_scope: self.__m_scope.clone(),
 							__m_name: self.__m_name.clone(),
 							{assign}
 						}};
+						let path = format!("{ty}.{{}}", this.name());
+						let this = this.prepare(path);
 						let mut config = ::std::collections::HashMap::new();
 						{config}
 						let resource = ::tf_bindgen::schema::document::Resource {{

@@ -8,6 +8,7 @@ mod cell;
 mod prepare;
 
 pub use cell::Cell;
+pub use prepare::Prepare;
 
 #[derive(Clone)]
 pub enum Value<T> {
