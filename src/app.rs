@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::{collections::HashMap, rc::Rc};
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -36,14 +35,14 @@ impl App {
     /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
     /// - failed to create deployment directory
     /// - failed to write deployment file
-    pub fn deploy(&self, quiet: bool) -> Result<()> {
+    pub fn deploy(&self) -> Result<()> {
         if self.config.borrow().stacks.len() != 1 {
             bail!(
                 "expected 1 stack but got {}",
                 self.config.borrow().stacks.len()
             )
         }
-        self.deploy_stack(self.config.borrow().stacks.keys().next().unwrap(), quiet)
+        self.deploy_stack(self.config.borrow().stacks.keys().next().unwrap())
     }
 
     /// Will synthesize the infrastructure definition and validate the result using `terraform
@@ -56,32 +55,30 @@ impl App {
     /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
     /// - failed to create deployment directory
     /// - failed to write deployment file
-    pub fn validate(&self, quiet: bool) -> Result<()> {
+    pub fn validate(&self) -> Result<()> {
         if self.config.borrow().stacks.len() != 1 {
             bail!(
                 "expected 1 stack but got {}",
                 self.config.borrow().stacks.len()
             )
         }
-        self.validate_stack(self.config.borrow().stacks.keys().next().unwrap(), quiet)
+        self.validate_stack(self.config.borrow().stacks.keys().next().unwrap())
     }
 
     /// Will initialize terraform deployment at `path. Requires a synthesized stack (see
     /// [`Self::synth`]). Use `quite` to disable output to stdout and sterr.
-    pub fn init(&self, path: impl AsRef<Path>, quiet: bool) -> Result<()> {
-        let mut terraform = Command::new("terraform");
-        terraform
-            .arg(format!("-chdir={}", path.as_ref().to_str().unwrap()))
-            .arg("init");
-        if !quiet {
-            terraform
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit());
-        }
-        let terraform = terraform.output().context("failed to run terraform")?;
-        if !terraform.status.success() {
-            bail!("failed to initialize infrastructure");
+    pub fn init(&self, path: impl Into<String>) -> Result<()> {
+        let output = tf_cli::Terraform::init().working_dir(path).run()?;
+        if !output.success() {
+            println!(
+                "---- STDOUT -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            println!(
+                "---- STDERR -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            bail!("failed deploy with terraform");
         }
         Ok(())
     }
@@ -121,29 +118,27 @@ impl App {
     /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
     /// - failed to create deployment directory
     /// - failed to write deployment file
-    pub fn deploy_stack(&self, name: impl AsRef<str>, quiet: bool) -> Result<()> {
+    pub fn deploy_stack(&self, name: impl AsRef<str>) -> Result<()> {
         let name = name.as_ref();
         let stack_dir = format!("target/terraform/stacks/{name}");
         std::fs::create_dir_all(&stack_dir).context("failed to create deployment directoy")?;
         let stack_file = format!("{stack_dir}/cdk.tf.json");
         self.synth(name, stack_file)
             .with_context(|| format!("failed synthesize stack with name `{name}`"))?;
-        self.init(&stack_dir, quiet)
+        self.init(&stack_dir)
             .with_context(|| format!("failed to initialize stack with name `{name}`"))?;
-        let mut terraform = Command::new("terraform");
-        terraform.arg(format!("-chdir={stack_dir}")).arg("apply");
-        if !quiet {
-            terraform
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit());
-        }
-        let terraform = terraform.output().context("failed to run terraform")?;
-        if !terraform.status.success() {
-            bail!(
-                "terraform failed with exit code {}",
-                terraform.status.code().unwrap_or(-1)
-            )
+
+        let output = tf_cli::Terraform::deploy().working_dir(stack_dir).run()?;
+        if !output.success() {
+            println!(
+                "---- STDOUT -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            println!(
+                "---- STDERR -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            bail!("failed deploy with terraform");
         }
         Ok(())
     }
@@ -159,29 +154,27 @@ impl App {
     /// - more than one stack was declared (use [`Self::deploy_stack`] instead)
     /// - failed to create deployment directory
     /// - failed to write deployment file
-    pub fn validate_stack(&self, name: impl AsRef<str>, quiet: bool) -> Result<()> {
+    pub fn validate_stack(&self, name: impl AsRef<str>) -> Result<()> {
         let name = name.as_ref();
         let stack_dir = format!("target/terraform/stacks/{name}");
         std::fs::create_dir_all(&stack_dir).context("failed to create deployment directoy")?;
         let stack_file = format!("{stack_dir}/cdk.tf.json");
         self.synth(name, stack_file)
             .with_context(|| format!("failed synthesize stack with name `{name}`"))?;
-        self.init(&stack_dir, quiet)
+        self.init(&stack_dir)
             .with_context(|| format!("failed to initialize stack with name `{name}`"))?;
-        let mut terraform = Command::new("terraform");
-        terraform.arg(format!("-chdir={stack_dir}")).arg("validate");
-        if !quiet {
-            terraform
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit());
-        }
-        let terraform = terraform.output().context("failed to run terraform")?;
-        if !terraform.status.success() {
-            bail!(
-                "terraform failed with exit code {}",
-                terraform.status.code().unwrap_or(-1)
-            )
+
+        let output = tf_cli::Terraform::validate().working_dir(stack_dir).run()?;
+        if !output.success() {
+            println!(
+                "---- STDOUT -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            println!(
+                "---- STDERR -----\n{}\n----- END -----\n",
+                String::from_utf8(output.stdout().to_vec())?
+            );
+            bail!("failed deploy with terraform");
         }
         Ok(())
     }

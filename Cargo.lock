@@ -259,10 +259,15 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "tf-cli",
  "tf-codegen",
  "tf-schema",
  "toml",
 ]
+
+[[package]]
+name = "tf-cli"
+version = "0.1.0"
 
 [[package]]
 name = "tf-codegen"
