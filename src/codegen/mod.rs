@@ -39,9 +39,10 @@ impl Generator {
                 .iter()
                 .map(|(name, schema)| {
                     let name = name.split("/").last().unwrap();
+                    println!("{name:?} in {versions:#?}");
                     let version = versions
                         .iter()
-                        .find(|(n, _)| *n == name)
+                        .find(|(n, _)| n.split("/").last().unwrap() == name)
                         .unwrap()
                         .1
                         .comparators
