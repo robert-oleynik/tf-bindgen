@@ -249,11 +249,12 @@ impl StructInfo {
             .filter(|field| !field.is_computed() || field.is_optional())
             .map(|field| {
                 let name = field.name();
+                let fn_name = if name == "build" { "build_" } else { name };
                 let desc = field.doc_str();
                 let ty = field.builder_type();
                 format!(
                     r#"{desc}
-					pub fn {name}(&mut self, value: impl ::std::convert::Into<{ty}>) -> &mut Self {{
+					pub fn {fn_name}(&mut self, value: impl ::std::convert::Into<{ty}>) -> &mut Self {{
 						self.{name} = Some(value.into());
 						self
 					}}"#
