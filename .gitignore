@@ -1,3 +1,4 @@
 /node_modules
 /target
 /examples/kubernetes/target/
+/book/book
