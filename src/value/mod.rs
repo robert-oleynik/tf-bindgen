@@ -12,15 +12,17 @@ pub use prepare::Prepare;
 
 #[derive(Clone)]
 pub enum Value<T> {
-    Ref { path: String, value: Rc<T> },
+    Ref { path: String, value: Box<Value<T>> },
     Value { value: Rc<T> },
+    Computed,
 }
 
 impl<T> Value<T> {
     pub fn get(&self) -> Rc<T> {
         match &self {
-            Value::Ref { value, .. } => value.clone(),
+            Value::Ref { value, .. } => value.get(),
             Value::Value { value } => value.clone(),
+            Value::Computed => unimplemented!("computed values cannot be dereferenced"),
         }
     }
 }
@@ -32,6 +34,7 @@ impl<T> Deref for Value<T> {
         match self {
             Value::Ref { value, .. } => &value,
             Value::Value { value } => &value,
+            Value::Computed => unimplemented!("computed values cannot be dereferenced"),
         }
     }
 }
@@ -150,9 +153,12 @@ impl<T: Clone> From<Option<Value<T>>> for Value<Option<T>> {
             Some(Value::Value { value }) => Self::Value {
                 value: Rc::new(Some(value.deref().clone())),
             },
+            Some(Value::Computed) => todo!(),
             Some(Value::Ref { path, value }) => Self::Ref {
                 path: path.clone(),
-                value: Rc::new(Some(value.deref().clone())),
+                value: Box::new(Value::Value {
+                    value: Rc::new(Some((**value).clone())),
+                }),
             },
             None => Self::Value {
                 value: Rc::new(None),
@@ -169,8 +175,9 @@ impl<T: Clone> From<Option<Value<Option<T>>>> for Value<Option<T>> {
             },
             Some(Value::Ref { path, value }) => Self::Ref {
                 path: path.clone(),
-                value: Rc::new(value.deref().clone()),
+                value,
             },
+            Some(Value::Computed) => todo!(),
             None => Self::Value {
                 value: Rc::new(None),
             },
@@ -182,7 +189,7 @@ impl<T: Clone> From<&Cell<T>> for Value<T> {
     fn from(value: &Cell<T>) -> Self {
         Self::Ref {
             path: value.path().to_string(),
-            value: value.get(),
+            value: Box::new(value.value().clone()),
         }
     }
 }
@@ -198,6 +205,7 @@ impl<T: Serialize> Serialize for Cell<T> {
                 serializer.serialize_str(&id)
             }
             Value::Value { value } => value.serialize(serializer),
+            Value::Computed => unimplemented!("computed value can not been serialized"),
         }
     }
 }

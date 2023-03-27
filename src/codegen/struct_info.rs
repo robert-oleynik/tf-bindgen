@@ -63,12 +63,7 @@ impl StructInfo {
     pub fn gen_struct(&self) -> String {
         let prefix = self.path.type_name();
         let name = self.name.to_upper_camel_case();
-        let fields = self
-            .fields
-            .iter()
-            .filter(|field| !field.is_computed() || field.is_optional())
-            .map(FieldInfo::gen_field)
-            .join(",\n");
+        let fields = self.fields.iter().map(FieldInfo::gen_field).join(",\n");
         match self.ty {
             StructType::Provider { .. } => format!(
                 r#"#[derive(::std::clone::Clone, ::tf_bindgen::serde::Serialize)]
@@ -146,7 +141,6 @@ impl StructInfo {
         let prepare_fields = self
             .fields
             .iter()
-            .filter(|field| !field.is_computed() || field.is_optional())
             .map(|field| {
                 let name = field.name();
                 format!(
@@ -274,12 +268,14 @@ impl StructInfo {
         let assign = self
             .fields
             .iter()
-            .filter(|field| !field.is_computed() || field.is_optional())
+            // .filter(|field| !field.is_computed() || field.is_optional())
             .map(|field| {
                 let name = field.name();
                 if field.is_optional() {
                     format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone())"#)
-                } else {
+                } else if field.is_computed() {
+					format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", ::tf_bindgen::value::Value::Computed)"#)
+				} else {
                     format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone().expect("field `{name}`"))"#)
                 }
             })

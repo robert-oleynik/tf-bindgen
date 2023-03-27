@@ -37,9 +37,8 @@ impl Generator {
         let schemas = match schema {
             Schema::V1_0 { provider_schemas } => provider_schemas
                 .iter()
-                .map(|(name, schema)| {
-                    let name = name.split("/").last().unwrap();
-                    println!("{name:?} in {versions:#?}");
+                .map(|(url, schema)| {
+                    let name = url.split("/").last().unwrap();
                     let version = versions
                         .iter()
                         .find(|(n, _)| n.split("/").last().unwrap() == name)
@@ -49,7 +48,8 @@ impl Generator {
                         .iter()
                         .map(|comp| cargo_simplify_version(comp.clone()))
                         .join(",");
-                    let provider = StructInfo::from_provider(name, version, &schema.provider.block);
+                    let provider =
+                        StructInfo::from_provider(name, version, url, &schema.provider.block);
                     let resources = schema
                         .resource_schemas
                         .iter()
@@ -109,13 +109,14 @@ impl StructInfo {
     pub fn from_provider(
         name: impl Into<String>,
         version: impl Into<String>,
+        url: impl Into<String>,
         schema: &Block,
     ) -> Self {
         let name = name.into();
         let path = Path::empty();
         let nested = Nested::from_schema(&path, schema);
         let ty = StructType::Provider {
-            ty: name.clone(),
+            ty: url.into(),
             ver: version.into(),
             nested: nested.0,
         };
