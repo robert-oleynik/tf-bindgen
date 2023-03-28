@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -143,6 +144,38 @@ impl<T> From<Option<HashMap<String, T>>> for Value<Option<HashMap<String, T>>> {
     fn from(value: Option<HashMap<String, T>>) -> Self {
         Self::Value {
             value: Rc::new(value),
+        }
+    }
+}
+
+impl<T: Hash + Eq, U: Into<T>, const L: usize> From<[U; L]> for Value<HashSet<T>> {
+    fn from(values: [U; L]) -> Self {
+        Self::Value {
+            value: Rc::new(values.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+impl<T: Hash + Eq, U: Into<T>, const L: usize> From<[U; L]> for Value<Option<HashSet<T>>> {
+    fn from(values: [U; L]) -> Self {
+        Self::Value {
+            value: Rc::new(Some(values.into_iter().map(Into::into).collect())),
+        }
+    }
+}
+
+impl<T, const L: usize> From<[T; L]> for Value<Vec<T>> {
+    fn from(values: [T; L]) -> Self {
+        Self::Value {
+            value: Rc::new(values.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+impl<T, const L: usize> From<[T; L]> for Value<Option<Vec<T>>> {
+    fn from(values: [T; L]) -> Self {
+        Self::Value {
+            value: Rc::new(Some(values.into_iter().map(Into::into).collect())),
         }
     }
 }

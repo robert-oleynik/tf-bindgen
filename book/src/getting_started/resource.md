@@ -109,19 +109,7 @@ As you may have guessed, this code snippet will create the same `docker_image` r
 
 ## Referencing Attributes
 
-Now we can use the `docker_image` image resource to create our Docker container. We will start with creating our environment set, because the interface of our `docker_image` requires a set instead of an array.
-
-```rust
-use std::collections::HashSet;
-
-fn main() {
-	// ...
-	let env = HashSet::new();
-    env.insert("POSTGRES_PASSWORD=example".to_string());
-}
-```
-
-After this, we use a reference to our Docker image to retrieve the generated `image_id`.
+Now we can use the `docker_image` image resource to create our Docker container, by passing the image ID as reference to our container. In addition, we will set the name and the environment of our Docker container similar to our Docker image:
 
 ```rust
 use docker::resource::docker_image::*;
@@ -131,7 +119,7 @@ fn main() {
     DockerContainer::create(&stack, "postgres-container")
         .name("postgres")
         .image(&image.image_id)
-        .env(env)
+        .env(["POSTGRES_PASSWORD=example"])
         .build();
 }
 ```

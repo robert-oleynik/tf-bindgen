@@ -1,4 +1,4 @@
-> You can skip this section, if your only plan to use pre-generated providers.
+> You can skip this section, if you only plan to use pre-generated providers.
 
 # Generate Bindings
 
