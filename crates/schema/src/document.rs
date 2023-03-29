@@ -11,6 +11,7 @@ pub struct Document {
     pub terraform: Terraform,
     pub provider: HashMap<String, Vec<Provider>>,
     pub resource: HashMap<String, HashMap<String, Resource>>,
+    pub data: HashMap<String, HashMap<String, Resource>>,
 }
 
 #[derive(Deserialize, Serialize)]

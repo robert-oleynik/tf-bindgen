@@ -70,7 +70,7 @@ impl StructInfo {
 				#[serde(crate = "::tf_bindgen::serde")]
 				pub struct {prefix}{name} {{
 					#[serde(skip_serializing)]
-					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
+					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Scope>, 
 					{fields}
 				}}"#
             ),
@@ -79,7 +79,7 @@ impl StructInfo {
 				#[serde(crate = "::tf_bindgen::serde")]
 				pub struct {prefix}{name} {{
 					#[serde(skip_serializing)]
-					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
+					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Scope>, 
 					#[serde(skip_serializing)]
 					__m_name: ::std::string::String,
 					{fields}
@@ -107,13 +107,13 @@ impl StructInfo {
         match self.ty {
             StructType::Provider { .. } => format!(
                 r#"pub struct {prefix}{name}Builder {{
-					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
+					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Scope>, 
 					{fields}
 				}}"#
             ),
             StructType::Construct { .. } => format!(
                 r#"pub struct {prefix}{name}Builder {{
-					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Construct>, 
+					__m_scope: ::std::rc::Rc<dyn ::tf_bindgen::Scope>, 
 					__m_name: ::std::string::String,
 					{fields}
 				}}"#
@@ -152,9 +152,9 @@ impl StructInfo {
             })
             .join(",\n");
         match &self.ty {
-            StructType::Provider { .. } => format!(
+            StructType::Provider { ty, .. } => format!(
                 r#"impl {prefix}{name} {{
-					pub fn create<C: ::tf_bindgen::Construct + 'static>(
+					pub fn create<C: ::tf_bindgen::Scope + 'static>(
 						scope: &::std::rc::Rc<C>,
 					) -> {prefix}{name}Builder {{
 						{prefix}{name}Builder {{
@@ -162,11 +162,24 @@ impl StructInfo {
 							{fields}
 						}}
 					}}
+
+				}}
+
+				impl ::tf_bindgen::Scope for {prefix}{name} {{
+					fn stack(&self) -> ::tf_bindgen::Stack {{
+						self.__m_scope.stack()
+					}}
+
+					fn path(&self) -> ::tf_bindgen::Path {{
+						let mut path = self.__m_scope.path();
+						path.push("{ty}");
+						path
+					}}
 				}}"#
             ),
             StructType::Construct { .. } => format!(
                 r#"impl {prefix}{name} {{
-					pub fn create<C: ::tf_bindgen::Construct + 'static>(
+					pub fn create<C: ::tf_bindgen::Scope + 'static>(
 						scope: &::std::rc::Rc<C>,
 						name: impl ::std::convert::Into<::std::string::String>
 					) -> {prefix}{name}Builder {{
@@ -178,24 +191,18 @@ impl StructInfo {
 					}}
 				}}
 
-				impl ::tf_bindgen::Construct for {prefix}{name} {{
-					fn app(&self) -> ::tf_bindgen::app::App {{
-						self.__m_scope.app()
-					}}
-
-					fn stack(&self) -> &str {{
+				impl ::tf_bindgen::Scope for {prefix}{name} {{
+					fn stack(&self) -> ::tf_bindgen::Stack {{
 						self.__m_scope.stack()
 					}}
 
-					fn name(&self) -> &str {{
-						&self.__m_name
-					}}
-
-					fn path(&self) -> ::std::string::String {{
-						self.__m_scope.path() + "/" + &self.__m_name
+					fn path(&self) -> ::tf_bindgen::Path {{
+						let mut path = self.__m_scope.path();
+						path.push(&self.__m_name);
+						path
 					}}
 				}}
-
+ 
 				impl ::tf_bindgen::value::Prepare for {prefix}{name} {{
 					fn prepare(self, prefix: impl Into<::std::string::String>) -> Self {{
 						let prefix = prefix.into();
@@ -288,59 +295,67 @@ impl StructInfo {
                 let name = field.name();
                 format!(
                     r#"
-						let value = ::tf_bindgen::json::to_value(&this.{name}).unwrap();
+						let value = ::tf_bindgen::json::to_value(&self.{name}).unwrap();
 						config.insert("{name}".to_string(), value);
 					"#
                 )
             })
             .collect();
         match &self.ty {
-            StructType::Provider { ty, ver, .. } => format!(
-                r#"impl {prefix}{name}Builder {{
-					pub fn build(&mut self) -> {prefix}{name} {{
-						let this = {prefix}{name} {{
+            StructType::Provider { ver, .. } => format!(
+                r#"impl ::tf_bindgen::Provider for {prefix}{name} {{
+					fn to_schema(&self) -> (::std::string::String, ::tf_bindgen::schema::document::Provider) {{
+						let mut config = ::tf_bindgen::schema::document::Provider::new();
+						{config}
+						("{ver}".to_string(), config)
+					}}
+				}}
+
+				impl {prefix}{name}Builder {{
+					pub fn build(&mut self) -> ::std::rc::Rc<{prefix}{name}> {{
+						use tf_bindgen::Scope;
+						let this = ::std::rc::Rc::new({prefix}{name} {{
 							__m_scope: self.__m_scope.clone(),
 							{assign}
-						}};
-						let mut config = ::tf_bindgen::json::Map::new();
-						{config}
-						this.__m_scope
-							.app()
-							.add_provider(
-								this.__m_scope.stack(),
-								"{ty}",
-								"{ver}",
-								config
-							);
+						}});
+						this.stack().add_provider(this.clone());
 						this
 					}}
 				}}"#
             ),
             StructType::Construct { ty, .. } => format!(
-                r#"impl {prefix}{name}Builder {{
-					pub fn build(&mut self) -> {prefix}{name} {{
+                r#"impl ::tf_bindgen::L1Construct for {prefix}{name} {{
+					fn to_schema(&self) -> (::std::string::String, ::tf_bindgen::schema::document::Resource) {{
+						use tf_bindgen::Scope;
+						let mut config = ::std::collections::HashMap::new();
+						{config}
+						let path = self.path();
+						let resource = ::tf_bindgen::schema::document::Resource {{
+							meta: ::tf_bindgen::schema::document::ResourceMeta {{
+								metadata: ::tf_bindgen::schema::document::ResourceMetadata {{
+									path: path.to_string(),
+									unique_id: path.name().to_string(),
+								}},
+							}},
+							config
+						}};
+						("{ty}".to_string(), resource)
+					}}
+				}}
+
+
+				impl {prefix}{name}Builder {{
+					pub fn build(&mut self) -> ::std::rc::Rc<{prefix}{name}> {{
+						use tf_bindgen::Scope;
 						use ::tf_bindgen::value::Prepare;
-						use ::tf_bindgen::Construct;
 						let this = {prefix}{name} {{
 							__m_scope: self.__m_scope.clone(),
 							__m_name: self.__m_name.clone(),
 							{assign}
 						}};
-						let path = format!("{ty}.{{}}", this.name());
-						let this = this.prepare(path);
-						let mut config = ::std::collections::HashMap::new();
-						{config}
-						let resource = ::tf_bindgen::schema::document::Resource {{
-							meta: ::tf_bindgen::schema::document::ResourceMeta {{
-								metadata: ::tf_bindgen::schema::document::ResourceMetadata {{
-									path: this.path(),
-									unique_id: this.name().to_string(),
-								}},
-							}},
-							config
-						}};
-						let app = this.app();
-						app.add_resource(this.stack(), "{ty}", this.name(), resource);
+						let path = format!("{ty}.{{}}", this.path().name());
+						let this = ::std::rc::Rc::new(this.prepare(path));
+						this.stack().add_resource(this.clone());
 						this
 					}}
 				}}"#

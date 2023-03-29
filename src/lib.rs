@@ -1,21 +1,18 @@
-pub mod app;
 pub mod builder;
 pub mod codegen;
 pub mod config;
-mod construct;
 pub mod model;
-pub mod stack;
 pub mod value;
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use codegen::Generator;
 use semver::VersionReq;
 use tf_schema::provider;
 
+pub use tf_core::*;
+
 pub use crate::builder::Builder;
-pub use construct::Construct;
 pub use serde;
 pub use serde_json as json;
 pub use tf_schema as schema;
@@ -24,12 +21,13 @@ pub struct Bindings {
     version: HashMap<String, VersionReq>,
     schema: provider::Schema,
 }
+use std::path::Path as StdPath;
 
 impl Bindings {
     pub fn write_to_file(
         self,
-        base_path: impl AsRef<Path>,
-        root_file: impl AsRef<Path>,
+        base_path: impl AsRef<StdPath>,
+        root_file: impl AsRef<StdPath>,
     ) -> std::io::Result<()> {
         let provider_dir = base_path.as_ref().join("provider");
         std::fs::create_dir_all(&provider_dir)?;

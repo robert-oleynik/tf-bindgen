@@ -105,23 +105,15 @@ pub fn construct_derive(input: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     quote::quote!(
-        impl #crate_path::Construct for #name {
-            fn app(&self) -> #crate_path::app::App {
-                self.#scope_field.app()
-            }
-
-            fn stack(&self) -> &str {
+        impl #crate_path::Scope for #name {
+            fn stack(&self) -> #crate_path::Stack {
                 self.#scope_field.stack()
             }
 
-            fn name(&self) -> &str {
-                &self.#id_field
-            }
-
-            fn path(&self) -> String {
-                let path = self.#scope_field.path();
-                let name = self.name();
-                path + "/" + name
+            fn path(&self) -> #crate_path::Path {
+                let mut path = self.#scope_field.path();
+                path.push(&self.#id_field);
+                path
             }
         }
     )
