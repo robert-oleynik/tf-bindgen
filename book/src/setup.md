@@ -26,4 +26,4 @@ While it is now possible to use `tf-bindgen` in your project, we still need the 
 - self generated bindings by `tf-bindgen`
 - pre-generated bindings
 
-We will discuss self generated bindings in a later chapter [1.1](./getting_started/generate.md). To use pre-generated bindings instead, you can add these as a dependency to your project, like `tf-bindgen`. You can find a list with official and community bindings in [chapter Pre-Generated Bindings](./pre_generated_bindings.md).
+We will discuss self generated bindings in a later chapter [1.1](./getting_started/generate.md). To use pre-generated bindings instead, you can add these as a dependency to your project, like `tf-bindgen`. You can find a list with official and community bindings in [chapter Pre-Generated Bindings](bindings.md).
