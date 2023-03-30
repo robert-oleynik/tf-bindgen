@@ -29,6 +29,9 @@ jobs:
     # Build job
     build:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: book
         env:
             MDBOOK_VERSION: 0.4.21
         steps:
