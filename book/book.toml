@@ -9,6 +9,7 @@ title = "tf-bindgen"
 default-theme = "ayu"
 git-repository-url = "https://github.com/robert-oleynik/tf-bindgen"
 git-repository-icon = "fa-github"
+site-url = "/tf-bindgen/"
 
 [output.html.playground]
 runnable = false
