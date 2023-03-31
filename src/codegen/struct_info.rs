@@ -353,7 +353,7 @@ impl StructInfo {
 							__m_name: self.__m_name.clone(),
 							{assign}
 						}};
-						let path = format!("{ty}.{{}}", this.path().name());
+						let path = format!("{ty}.{{}}", this.path().id());
 						let this = ::std::rc::Rc::new(this.prepare(path));
 						this.stack().add_resource(this.clone());
 						this
