@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
-use std::hash::Hash;
+
+use sha1::{Digest, Sha1};
 
 /// Used to store the id of a construct.
 #[derive(Clone)]
@@ -14,6 +15,22 @@ impl Path {
             .iter()
             .last()
             .expect("Path expects at least one element")
+    }
+
+    /// Returns the id of this object.
+    pub fn id(&self) -> String {
+        let name = self.name();
+        let mut hasher = Sha1::default();
+        for segment in &self.segments {
+            hasher.update(segment);
+        }
+        let hash: String = hasher
+            .finalize()
+            .as_slice()
+            .iter()
+            .map(|by| format!("{by:x}"))
+            .collect();
+        format!("{name}-{hash}")
     }
 
     /// Extend this path with new `identifier`.
@@ -46,13 +63,5 @@ impl Display for Path {
             f.write_str(segment)?;
         }
         Ok(())
-    }
-}
-
-impl Hash for Path {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        for segment in &self.segments {
-            state.write(segment.as_bytes())
-        }
     }
 }

@@ -1,9 +1,9 @@
+use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use sha1::{Digest, Sha1};
-use tf_schema::document::{Meta, Metadata, Terraform};
+use tf_schema::document::{Meta, Metadata, ProviderConfig, Terraform};
 use tf_schema::Document;
 
 use crate::{L1Construct, Path, Provider, Scope};
@@ -74,19 +74,35 @@ impl Stack {
             resource: HashMap::default(),
             data: HashMap::default(),
         };
-        // TODO: Providers
+        for provider in self.inner.provider.borrow().iter() {
+            let path = provider.path();
+            let name = path.name();
+            let local_name = name.split('/').last().unwrap();
+            let (version, schema) = provider.to_schema();
+            let config = ProviderConfig {
+                source: name.to_string(),
+                version,
+            };
+            document
+                .terraform
+                .required_providers
+                .insert(local_name.to_string(), config);
+            if !document.provider.borrow().contains_key(local_name) {
+                document
+                    .provider
+                    .borrow_mut()
+                    .insert(local_name.to_string(), Vec::new());
+            }
+            document
+                .provider
+                .borrow_mut()
+                .get_mut(local_name)
+                .unwrap()
+                .push(schema);
+        }
         for resource in self.inner.resources.borrow().iter() {
             let path = resource.path();
-            let name = path.name();
-            let mut hasher = Sha1::default();
-            hasher.update(path.to_string().as_bytes());
-            let hash: String = hasher
-                .finalize()
-                .as_slice()
-                .iter()
-                .map(|by| format!("{by:x}"))
-                .collect();
-            let key = format!("{name}-{hash}");
+            let key = path.id();
             let (ty, schema) = resource.to_schema();
             if !document.resource.contains_key(&ty) {
                 document.resource.insert(ty.clone(), HashMap::new());
@@ -103,16 +119,7 @@ impl Stack {
         }
         for data_source in self.inner.data_sources.borrow().iter() {
             let path = data_source.path();
-            let name = path.name();
-            let mut hasher = Sha1::default();
-            hasher.update(path.to_string().as_bytes());
-            let hash: String = hasher
-                .finalize()
-                .as_slice()
-                .iter()
-                .map(|by| format!("{by:x}"))
-                .collect();
-            let key = format!("{name}-{hash}");
+            let key = path.id();
             let (ty, schema) = data_source.to_schema();
             if !document.data.contains_key(&ty) {
                 document.data.insert(ty.clone(), HashMap::new());
