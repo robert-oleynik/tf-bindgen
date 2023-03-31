@@ -15,6 +15,7 @@ pub use tf_core::*;
 pub use crate::builder::Builder;
 pub use serde;
 pub use serde_json as json;
+pub use tf_cli as cli;
 pub use tf_schema as schema;
 
 pub struct Bindings {

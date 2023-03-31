@@ -1,42 +1,120 @@
-use std::process::Output;
+use serde_json::Value;
+use std::process::Command;
+use tf_core::Stack;
 
-pub mod deploy;
-pub mod init;
-pub mod validate;
+const PATH: &str = "target/stacks/";
 
 /// Used to store the result of the terraform command.
-pub struct Terraform {
-    output: Output,
-}
+pub struct Terraform;
 
 impl Terraform {
-    /// Creates a new builder for Terraform's validation.
-    pub fn validate() -> validate::Validate {
-        validate::Validate::default()
+    /// Generates the Terraform JSON configuration and writes to a file at
+    /// `target/stacks/{stack_name}/cdk.tf.json`.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to write JSON document or to create stack directory.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate JSON document.
+    pub fn synth(stack: &Stack) -> std::io::Result<()> {
+        let document = stack.to_document();
+        let document = serde_json::to_value(&document).expect("valid JSON document");
+        let document = match document {
+            Value::Object(mut mapping) => {
+                let fields = vec!["data", "resource", "provider"];
+                for field in fields {
+                    if let Some(Value::Object(fields)) = mapping.get(field) {
+                        if fields.is_empty() {
+                            mapping.remove(field);
+                        }
+                    }
+                }
+                Value::Object(mapping)
+            }
+            _ => unimplemented!(),
+        };
+        let document = serde_json::to_string_pretty(&document).unwrap();
+        let path = format!("{PATH}/{}", stack.name());
+        std::fs::create_dir_all(&path)?;
+        std::fs::write(format!("{path}/cdk.tf.json"), document)?;
+        Ok(())
     }
 
-    /// Creates a new builder for Terraform's init.
-    pub fn init() -> init::Init {
-        init::Init::default()
+    /// Will synthesize (see [`Terraform::synth`]). Returns a prepared Terraform command to run
+    /// initialization.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to synthesize stack (see [`Terraform::synth`]).
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate document (see [`Terraform::synth`]).
+    pub fn init(stack: &Stack) -> std::io::Result<Command> {
+        Self::synth(stack)?;
+        let mut command = Command::new("terraform");
+        let path = format!("{PATH}/{}", stack.name());
+        command.arg(format!("-chdir={}", path));
+        command.arg("init");
+        Ok(command)
     }
 
-    /// Creates a new builder for Terraform's deploy.
-    pub fn deploy() -> deploy::Deploy {
-        deploy::Deploy::default()
+    /// Will synthesize (see [`Terraform::synth`]). Returns a prepared Terraform command to run
+    /// validate.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to synthesize stack (see [`Terraform::synth`]).
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate document (see [`Terraform::synth`]).
+    pub fn validate(stack: &Stack) -> std::io::Result<Command> {
+        Self::synth(stack)?;
+        let mut command = Command::new("terraform");
+        let path = format!("{PATH}/{}", stack.name());
+        command.arg(format!("-chdir={}", path));
+        command.arg("validate");
+        Ok(command)
     }
 
-    /// Returns `true` if Terraform completed successfully.
-    pub fn success(&self) -> bool {
-        self.output.status.success()
+    /// Will synthesize (see [`Terraform::synth`]). Returns a prepared Terraform command to run
+    /// deploy.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to synthesize stack (see [`Terraform::synth`]).
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate document (see [`Terraform::synth`]).
+    pub fn apply(stack: &Stack) -> std::io::Result<Command> {
+        Self::synth(stack)?;
+        let mut command = Command::new("terraform");
+        let path = format!("{PATH}/{}", stack.name());
+        command.arg(format!("-chdir={}", path));
+        command.arg("apply");
+        Ok(command)
     }
 
-    /// Returns the stdout of Terraform.
-    pub fn stdout(&self) -> &[u8] {
-        &self.output.stdout
-    }
-
-    /// Returns the stderr of Terraform.
-    pub fn stderr(&self) -> &[u8] {
-        &self.output.stderr
+    /// Will synthesize (see [`Terraform::synth`]). Returns a prepared Terraform command to run
+    /// destroy.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to synthesize stack (see [`Terraform::synth`]).
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate document (see [`Terraform::synth`]).
+    pub fn destroy(stack: &Stack) -> std::io::Result<Command> {
+        Self::synth(stack)?;
+        let mut command = Command::new("terraform");
+        let path = format!("{PATH}/{}", stack.name());
+        command.arg(format!("-chdir={}", path));
+        command.arg("destroy");
+        Ok(command)
     }
 }
