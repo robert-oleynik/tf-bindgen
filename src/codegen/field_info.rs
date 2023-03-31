@@ -20,6 +20,9 @@ impl FieldInfo {
     pub fn gen_field(&self) -> String {
         let name = self.name();
         let type_name = self.field_type();
+        if self.is_computed() {
+            return format!(r#"#[serde(skip_serializing)] pub {name}:  {type_name}"#);
+        }
         format!(r#"pub {name}: {type_name}"#)
     }
 
