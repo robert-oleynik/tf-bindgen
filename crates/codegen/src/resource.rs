@@ -29,14 +29,16 @@ impl ToTokens for Block {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = self.ty.value().to_upper_camel_case();
         let name = syn::Ident::new(&name, self.ty.span());
+        let module = self.ty.value();
+        let module = syn::Ident::new(&module, self.ty.span());
         let setter = self.body.to_setter_tokens();
-        let blocks = self.body.to_block_tokens(&name);
+        let blocks = self.body.to_block_tokens(&name, &module);
         let scope = &self.scope;
         let name_str = &self.name;
         tokens.extend(quote::quote!(
             {
                 #( #blocks )*
-                #name::create(#scope, #name_str)
+                #module::#name::create(#scope, #name_str)
                     #( #setter )*
                     .build()
             }
@@ -56,6 +58,7 @@ impl Body {
     fn to_block_tokens<'a>(
         &'a self,
         name: &'a syn::Ident,
+        module: &'a syn::Ident,
     ) -> impl Iterator<Item = TokenStream> + 'a {
         use Attribute::*;
         self.attributes
@@ -64,20 +67,20 @@ impl Body {
                 Block { name: aname, body } => {
                     let n = format!("{name}{}", aname.to_string().to_upper_camel_case());
                     let n = syn::Ident::new(&n, aname.span());
-                    Some((aname, body.to_tokens(n)))
+                    Some((aname, body.to_tokens(n, &module)))
                 }
                 _ => None,
             })
             .map(|(name, body)| quote::quote!( let #name = #body; ))
     }
 
-    fn to_tokens(&self, name: syn::Ident) -> TokenStream {
+    fn to_tokens(&self, name: syn::Ident, module: &syn::Ident) -> TokenStream {
         let setter = self.to_setter_tokens();
-        let blocks = self.to_block_tokens(&name);
+        let blocks = self.to_block_tokens(&name, &module);
         quote::quote!(
             {
                 #( #blocks )*
-                #name::builder()
+                #module::#name::builder()
                     #( #setter )*
                     .build()
             }
