@@ -117,4 +117,23 @@ impl Terraform {
         command.arg("destroy");
         Ok(command)
     }
+
+    /// Will synthesize (see [`Terraform::synth`]). Returns a prepared Terraform command to run
+    /// plan.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to synthesize stack (see [`Terraform::synth`]).
+    ///
+    /// # Panics
+    ///
+    /// Will panic if failed to generate document (see [`Terraform::synth`]).
+    pub fn plan(stack: &Stack) -> std::io::Result<Command> {
+        Self::synth(stack)?;
+        let mut command = Command::new("terraform");
+        let path = format!("{PATH}/{}", stack.name());
+        command.arg(format!("-chdir={}", path));
+        command.arg("plan");
+        Ok(command)
+    }
 }
