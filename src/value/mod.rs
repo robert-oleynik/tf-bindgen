@@ -139,6 +139,29 @@ impl<T> From<HashMap<String, T>> for Value<HashMap<String, T>> {
         }
     }
 }
+impl<T> From<HashMap<String, T>> for Value<Option<HashMap<String, T>>> {
+    fn from(value: HashMap<String, T>) -> Self {
+        Self::Value {
+            value: Rc::new(Some(value)),
+        }
+    }
+}
+
+impl<T: Clone> From<&HashMap<String, T>> for Value<HashMap<String, T>> {
+    fn from(value: &HashMap<String, T>) -> Self {
+        Self::Value {
+            value: Rc::new(value.clone()),
+        }
+    }
+}
+
+impl<T: Clone> From<&HashMap<String, T>> for Value<Option<HashMap<String, T>>> {
+    fn from(value: &HashMap<String, T>) -> Self {
+        Self::Value {
+            value: Rc::new(Some(value.clone())),
+        }
+    }
+}
 
 impl<T> From<Option<HashMap<String, T>>> for Value<Option<HashMap<String, T>>> {
     fn from(value: Option<HashMap<String, T>>) -> Self {
