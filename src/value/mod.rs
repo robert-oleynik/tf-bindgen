@@ -238,7 +238,7 @@ impl<T: Serialize> Serialize for Cell<T> {
                 serializer.serialize_str(&id)
             }
             Value::Value { value } => value.serialize(serializer),
-            Value::Computed => unimplemented!("computed value can not been serialized"),
+            Value::Computed => serializer.serialize_none(),
         }
     }
 }

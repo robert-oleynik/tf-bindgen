@@ -226,7 +226,7 @@ impl Fields {
                     .path(path.clone())
                     .name(name.clone())
                     .type_name(type_name)
-                    .optional(false)
+                    .optional(true)
                     .computed(false)
                     .description(None)
                     .build()
