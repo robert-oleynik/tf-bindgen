@@ -18,6 +18,8 @@ pub use serde_json as json;
 pub use tf_cli as cli;
 pub use tf_schema as schema;
 
+pub use value::Value;
+
 pub struct Bindings {
     version: HashMap<String, VersionReq>,
     schema: provider::Schema,

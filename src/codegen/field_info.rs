@@ -1,12 +1,15 @@
 use itertools::Itertools;
 
-use super::path::Path;
+use super::{
+    path::Path,
+    type_info::{TypeInfo, Wrapper},
+};
 
 #[derive(derive_builder::Builder, Clone, Debug)]
 pub struct FieldInfo {
     path: Path,
     name: String,
-    type_name: String,
+    type_info: TypeInfo,
     description: Option<String>,
     optional: bool,
     computed: bool,
@@ -19,13 +22,19 @@ impl FieldInfo {
 
     pub fn gen_field(&self) -> String {
         let name = self.name();
+        if self.is_computed() && !self.is_optional() {
+            let type_name = self.type_info.source();
+            return format!(
+                "#[serde(skip_serializing)] pub {name}: ::tf_bindgen::value::Cell<::tf_bindgen::value::Computed<{type_name}>>"
+            );
+        }
         let type_name = self.field_type();
-        format!(r#"pub {name}: {type_name}"#)
+        format!("pub {name}: {type_name}")
     }
 
     pub fn gen_builder_field(&self) -> String {
         let name = self.name();
-        let type_name = self.builder_type();
+        let type_name = self.type_info.source();
         format!("{name}: ::std::option::Option<{type_name}>")
     }
 
@@ -52,7 +61,7 @@ impl FieldInfo {
     }
 
     fn ty(&self) -> String {
-        let type_name = &self.type_name;
+        let type_name = self.type_info.source();
         if self.is_optional() {
             format!("::std::option::Option<{type_name}>")
         } else {
@@ -67,10 +76,32 @@ impl FieldInfo {
         format!("::tf_bindgen::value::Cell<{type_name}>")
     }
 
-    /// Type of field used inside of a builder. Will be wrapped inside of [`crate::value::Value`].
-    pub fn builder_type(&self) -> String {
-        let type_name = self.ty();
-        format!("::tf_bindgen::value::Value<{type_name}>")
+    /// Generated the builder's setter function.
+    pub fn builder_setter_impl(&self) -> String {
+        let name = self.name();
+        let fn_name = match name {
+            "build" => "build_",
+            _ => name,
+        };
+        let type_name = self.type_info.type_name();
+        let convert = match self.type_info.wrapper() {
+            Wrapper::List => "into_value_list()",
+            Wrapper::Map => "into_value_map()",
+            Wrapper::Type => "into_value()",
+            Wrapper::Set => "into_value_set()",
+        };
+        let impl_type = match self.type_info.wrapper() {
+            Wrapper::List => "IntoValueList",
+            Wrapper::Map => "IntoValueMap",
+            Wrapper::Type => "IntoValue",
+            Wrapper::Set => "IntoValueSet",
+        };
+        format!(
+            r#"pub fn {fn_name}(&mut self, value: impl ::tf_bindgen::value::{impl_type}<{type_name}>) -> &mut Self {{
+				self.{name} = Some(value.{convert});
+				self
+			}}"#
+        )
     }
 
     /// Generate doc comment for field builder. Will be empty if node description was specified.

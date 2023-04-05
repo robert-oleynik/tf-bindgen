@@ -232,9 +232,16 @@ impl StructInfo {
 					}}
 				}}
 
-				impl From<{prefix}{name}> for ::tf_bindgen::value::Value<{prefix}{name}> {{
-					fn from(value: {prefix}{name}) -> Self {{
-						Self::Value {{ value: ::std::rc::Rc::new(value) }}
+				impl ::tf_bindgen::value::IntoValue<{prefix}{name}> for {prefix}{name} {{
+					fn into_value(self) -> ::tf_bindgen::Value<{prefix}{name}> {{
+						::tf_bindgen::Value::Value {{ value: ::std::rc::Rc::new(self) }}
+					}}
+				}}
+
+				impl ::tf_bindgen::value::IntoValueList<{prefix}{name}> for {prefix}{name} {{
+					fn into_value_list(self) -> ::std::vec::Vec<::tf_bindgen::Value<{prefix}{name}>> {{
+						use ::tf_bindgen::value::IntoValue;
+						std::vec![self.into_value()]
 					}}
 				}}"#
             ),
@@ -248,19 +255,7 @@ impl StructInfo {
             .fields
             .iter()
             .filter(|field| !field.is_computed() || field.is_optional())
-            .map(|field| {
-                let name = field.name();
-                let fn_name = if name == "build" { "build_" } else { name };
-                let desc = field.doc_str();
-                let ty = field.builder_type();
-                format!(
-                    r#"{desc}
-					pub fn {fn_name}(&mut self, value: impl ::std::convert::Into<{ty}>) -> &mut Self {{
-						self.{name} = Some(value.into());
-						self
-					}}"#
-                )
-            })
+            .map(FieldInfo::builder_setter_impl)
             .join("\n");
         format!(
             r#"impl {prefix}{name}Builder {{
@@ -281,7 +276,7 @@ impl StructInfo {
                 if field.is_optional() {
                     format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone())"#)
                 } else if field.is_computed() {
-					format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", ::tf_bindgen::value::Value::Computed)"#)
+					format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", tf_bindgen::value::Computed::default())"#)
 				} else {
                     format!(r#"{name}: ::tf_bindgen::value::Cell::new("{name}", self.{name}.clone().expect("field `{name}`"))"#)
                 }

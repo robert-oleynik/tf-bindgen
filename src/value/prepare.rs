@@ -1,4 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Deref,
+    rc::Rc,
+};
 
 pub trait Prepare {
     fn prepare(self, prefix: impl Into<String>) -> Self;
@@ -47,5 +51,12 @@ impl<T> Prepare for HashSet<T> {
 impl<T> Prepare for HashMap<String, T> {
     fn prepare(self, _: impl Into<String>) -> Self {
         self
+    }
+}
+
+impl<T: Prepare + Clone> Prepare for Rc<T> {
+    fn prepare(self, prefix: impl Into<String>) -> Self {
+        let value = self.deref();
+        Rc::new(value.clone().prepare(prefix))
     }
 }

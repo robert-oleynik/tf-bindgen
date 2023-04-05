@@ -1,18 +1,19 @@
 use std::ops::Deref;
-use std::rc::Rc;
 
-use super::{prepare::Prepare, Value};
+use serde::{Serialize, Serializer};
+
+use super::prepare::Prepare;
 
 /// Used to store field information and value.
 #[derive(Clone)]
 pub struct Cell<T> {
     path: String,
-    value: Value<T>,
+    value: T,
 }
 
 impl<T> Cell<T> {
     /// Creates a new cell using `name` as field name and value as content.
-    pub fn new(name: impl Into<String>, value: impl Into<Value<T>>) -> Self {
+    pub fn new(name: impl Into<String>, value: impl Into<T>) -> Self {
         Self {
             path: name.into(),
             value: value.into(),
@@ -23,27 +24,15 @@ impl<T> Cell<T> {
         &self.path
     }
 
-    pub fn value(&self) -> &Value<T> {
+    pub fn value(&self) -> &T {
         &self.value
-    }
-
-    pub fn get(&self) -> Rc<T> {
-        self.value.get()
     }
 }
 
 impl<T: Prepare + Clone> Prepare for Cell<T> {
     fn prepare(self, prefix: impl Into<String>) -> Self {
         let path = prefix.into();
-        let value = if let Value::Value { value } = self.value {
-            let inner: T = value.deref().clone();
-            let inner = inner.prepare(&path);
-            Value::Value {
-                value: Rc::new(inner),
-            }
-        } else {
-            self.value
-        };
+        let value = self.value.prepare(&path);
         Self { path, value }
     }
 }
@@ -52,6 +41,15 @@ impl<T> Deref for Cell<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.value.deref()
+        &self.value
+    }
+}
+
+impl<T: Serialize> Serialize for Cell<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.value.serialize(serializer)
     }
 }

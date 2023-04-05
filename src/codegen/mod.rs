@@ -6,13 +6,17 @@ use semver::{Comparator, Op, VersionReq};
 use tf_schema::provider::v1_0::{Attribute, Block, BlockType, Type};
 use tf_schema::provider::Schema;
 
+use crate::codegen::type_info::TypeInfo;
+
 use self::field_info::FieldInfo;
 use self::path::Path;
 use self::struct_info::{StructInfo, StructType};
+use self::type_info::Wrapper;
 
 pub mod field_info;
 pub mod path;
 pub mod struct_info;
+pub mod type_info;
 
 pub use tf_codegen::resource;
 pub use tf_codegen::Construct;
@@ -221,11 +225,10 @@ impl Fields {
         let fields = fields
             .iter()
             .map(|(name, ty)| {
-                let type_name = type_to_rust(path, name, ty);
                 FieldInfo::builder()
                     .path(path.clone())
                     .name(name.clone())
-                    .type_name(type_name)
+                    .type_info(TypeInfo::from_schema(path, name, ty))
                     .optional(true)
                     .computed(false)
                     .description(None)
@@ -282,11 +285,11 @@ impl FieldInfo {
         let req = field.required.unwrap_or(comp && !opt);
         assert_ne!(opt, req, "Field must be optional and required not both.");
         let name = name.into();
-        let type_name = type_to_rust(path, &name, &field.r#type);
+        let type_info = TypeInfo::from_schema(path, &name, &field.r#type);
         FieldInfo::builder()
             .path(path.clone())
             .name(name)
-            .type_name(type_name)
+            .type_info(type_info)
             .description(field.description.clone())
             .optional(opt)
             .computed(comp)
@@ -306,14 +309,14 @@ impl FieldInfo {
             Type::List { .. } => false,
         };
         let type_name = path.type_name() + &name.to_upper_camel_case();
-        let type_name = match field {
-            Type::Single { .. } => type_name,
-            Type::List { .. } => format!("::std::vec::Vec<{type_name}>"),
+        let type_wrapper = match field {
+            Type::Single { .. } => Wrapper::Type,
+            Type::List { .. } => Wrapper::List,
         };
         FieldInfo::builder()
             .path(path.clone())
             .name(name)
-            .type_name(type_name)
+            .type_info(TypeInfo::new(type_wrapper, type_name))
             .optional(!req)
             .computed(false)
             .description(None)
@@ -353,24 +356,5 @@ pub fn cargo_simplify_version(constraint: Comparator) -> String {
         Op::Less => format!("<{major}.{minor}.{patch}"),
         Op::LessEq => format!("<={major}.{minor}.{patch}"),
         _ => unimplemented!(),
-    }
-}
-
-fn type_to_rust(path: &Path, name: &str, schema: &BlockType) -> String {
-    match schema {
-        BlockType::String => "::std::string::String".to_string(),
-        BlockType::Bool => "bool".to_string(),
-        BlockType::Number => "i64".to_string(),
-        BlockType::Dynamic => "::tf_bindgen::json::Value".to_string(),
-        BlockType::Set(ty) => format!(
-            "::std::collections::HashSet<{}>",
-            type_to_rust(path, name, &*ty)
-        ),
-        BlockType::Map(ty) => format!(
-            "::std::collections::HashMap<::std::string::String, {}>",
-            type_to_rust(path, name, &*ty)
-        ),
-        BlockType::List(ty) => format!("::std::vec::Vec<{}>", type_to_rust(path, name, &*ty)),
-        BlockType::Object(_) => path.type_name() + &name.to_upper_camel_case(),
     }
 }
