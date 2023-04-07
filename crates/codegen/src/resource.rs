@@ -49,10 +49,17 @@ impl ToTokens for Block {
 impl Body {
     fn to_setter_tokens(&self) -> impl Iterator<Item = TokenStream> + '_ {
         use Attribute::*;
-        self.attributes.iter().map(|attr| match attr {
-            Block { name, .. } => quote::quote!(.#name(#name)),
-            Field { name, assign } => quote::quote!(.#name(#assign)),
-        })
+        self.attributes
+            .iter()
+            .enumerate()
+            .map(|(i, attr)| match attr {
+                Block { name, .. } => {
+                    let field_name = format!("{name}{i}");
+                    let field_name = syn::Ident::new(&field_name, name.span());
+                    quote::quote!(.#name(#field_name))
+                }
+                Field { name, assign } => quote::quote!(.#name(#assign)),
+            })
     }
 
     fn to_block_tokens<'a>(
@@ -63,10 +70,12 @@ impl Body {
         use Attribute::*;
         self.attributes
             .iter()
-            .filter_map(move |attr| match attr {
+            .enumerate()
+            .filter_map(move |(i, attr)| match attr {
                 Block { name: aname, body } => {
                     let n = format!("{name}{}", aname.to_string().to_upper_camel_case());
                     let n = syn::Ident::new(&n, aname.span());
+                    let aname = syn::Ident::new(&format!("{aname}{i}"), aname.span());
                     Some((aname, body.to_tokens(n, &module)))
                 }
                 _ => None,

@@ -96,10 +96,21 @@ impl FieldInfo {
             Wrapper::Type => "IntoValue",
             Wrapper::Set => "IntoValueSet",
         };
+        let body_impl = match self.type_info.wrapper() {
+            Wrapper::List => format!(
+                r#"let new_list = value.{convert};
+				if let Some(list) = &mut self.{name} {{
+					list.extend(new_list);
+				}} else {{
+					self.{name} = Some(new_list);
+				}}
+				self"#
+            ),
+            _ => format!(r#"self.{name} = Some(value.{convert}); self"#),
+        };
         format!(
             r#"pub fn {fn_name}(&mut self, value: impl ::tf_bindgen::value::{impl_type}<{type_name}>) -> &mut Self {{
-				self.{name} = Some(value.{convert});
-				self
+				{body_impl}
 			}}"#
         )
     }
