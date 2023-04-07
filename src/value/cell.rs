@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, Index};
 
 use serde::{Serialize, Serializer};
 
@@ -26,6 +26,17 @@ impl<T> Cell<T> {
 
     pub fn value(&self) -> &T {
         &self.value
+    }
+}
+
+impl<T> Index<usize> for Cell<Option<Vec<T>>> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match &self.value {
+            Some(arr) => &arr[index],
+            None => panic!("cannot index empty array"),
+        }
     }
 }
 

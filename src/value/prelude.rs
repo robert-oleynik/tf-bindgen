@@ -44,6 +44,18 @@ impl IntoValue<String> for &str {
     }
 }
 
+impl<T> IntoValue<T> for Value<T> {
+    fn into_value(self) -> Value<T> {
+        self
+    }
+}
+
+impl<T: Clone> IntoValue<T> for &Value<T> {
+    fn into_value(self) -> Value<T> {
+        self.clone()
+    }
+}
+
 impl<T: Clone> IntoValue<T> for &Cell<Value<T>> {
     fn into_value(self) -> Value<T> {
         Value::Ref {
@@ -125,6 +137,18 @@ where
 {
     fn into_value_map(self) -> HashMap<String, Value<T>> {
         self.into_iter()
+            .map(|(key, value)| (key, value.into_value()))
+            .collect()
+    }
+}
+
+impl<T, U> IntoValueMap<T> for &HashMap<String, U>
+where
+    U: IntoValue<T> + Clone,
+{
+    fn into_value_map(self) -> HashMap<String, Value<T>> {
+        self.iter()
+            .map(|(key, value)| (key.clone(), value.clone()))
             .map(|(key, value)| (key, value.into_value()))
             .collect()
     }
