@@ -42,6 +42,10 @@ impl FieldInfo {
         fix_ident(&self.name)
     }
 
+    pub fn raw_name(&self) -> &str {
+        &self.name
+    }
+
     /// Returns `true` if this field is optional.
     pub fn is_optional(&self) -> bool {
         self.optional

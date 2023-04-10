@@ -288,10 +288,11 @@ impl StructInfo {
             .filter(|field| !field.is_computed() || field.is_optional())
             .map(|field| {
                 let name = field.name();
+                let raw_name = field.raw_name();
                 format!(
                     r#"
 						let value = ::tf_bindgen::json::to_value(&self.{name}).unwrap();
-						config.insert("{name}".to_string(), value);
+						config.insert("{raw_name}".to_string(), value);
 					"#
                 )
             })

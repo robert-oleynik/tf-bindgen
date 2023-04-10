@@ -30,6 +30,13 @@ macro_rules! impl_into_value {
                 }
             }
         }
+        impl IntoValue<$t> for &$t {
+            fn into_value(self) -> Value<$t> {
+                Value::Value {
+                    value: Rc::new(self.clone()),
+                }
+            }
+        }
     };
 }
 
