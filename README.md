@@ -32,7 +32,6 @@ See [Documentation](https://robert-oleynik.github.io/tf-bindgen/introduction.htm
 - [x] generate Rust code for Terraform provider
   - [x] implement data blocks
   - [x] implement resource blocks
-- [ ] implement Terraform cli wrapper as part of `Stack`
 - [x] add support for variable references
 - [x] generate Rust code from Terraform modules
 - [x] add code generator `tf_bindgen::codegen::resource`
