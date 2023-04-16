@@ -52,7 +52,7 @@ impl Bindings {
                 .map(|construct| {
                     let filename = format!("{}.rs", construct.ty());
                     let path = resource_dir.join(filename);
-                    std::fs::write(path, &construct.gen_rust())?;
+                    std::fs::write(path, construct.gen_rust())?;
                     Ok(construct.ty())
                 })
                 .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))
@@ -63,7 +63,7 @@ impl Bindings {
                 .map(|construct| {
                     let filename = format!("{}.rs", construct.ty());
                     let path = data_dir.join(filename);
-                    std::fs::write(path, &construct.gen_rust())?;
+                    std::fs::write(path, construct.gen_rust())?;
                     Ok(construct.ty())
                 })
                 .map(|name: std::io::Result<_>| Ok(format!("pub mod {};\n", name?)))

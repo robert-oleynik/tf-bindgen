@@ -69,7 +69,7 @@ impl TypeInfo {
             Wrapper::Map => {
                 format!("::std::collections::HashMap<::std::string::String, {type_name}>")
             }
-            Wrapper::Type => type_name.to_string(),
+            Wrapper::Type => type_name,
             Wrapper::Set => format!("::std::collections::HashSet<{type_name}>"),
         }
     }

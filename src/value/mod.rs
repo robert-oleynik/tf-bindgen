@@ -47,8 +47,8 @@ impl<T> Deref for Value<T> {
         match self {
             Value::Ref {
                 value: Some(value), ..
-            } => &value,
-            Value::Value { value } => &value,
+            } => value,
+            Value::Value { value } => value,
             _ => unimplemented!("can not dereference computed values"),
         }
     }

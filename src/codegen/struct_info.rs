@@ -37,8 +37,8 @@ impl StructInfo {
 
     pub fn ty(&self) -> &str {
         match &self.ty {
-            StructType::Provider { ty, .. } => &ty,
-            StructType::Construct { ty, .. } => &ty,
+            StructType::Provider { ty, .. } => ty,
+            StructType::Construct { ty, .. } => ty,
             StructType::Nested => unimplemented!(),
         }
     }

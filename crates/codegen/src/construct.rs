@@ -237,8 +237,7 @@ pub fn get_nth_generic_argument(path: &syn::Path, n: usize) -> syn::Type {
                     GenericArgument::Type(ty) => Some(ty),
                     _ => None,
                 })
-                .skip(n)
-                .next()
+                .nth(n)
                 .expect("missing generic argument"),
             _ => unimplemented!("Missing generic argument"),
         })

@@ -69,7 +69,7 @@ impl FieldInfo {
         if self.is_optional() {
             format!("::std::option::Option<{type_name}>")
         } else {
-            type_name.to_string()
+            type_name
         }
     }
 
@@ -123,7 +123,7 @@ impl FieldInfo {
     pub fn doc_str(&self) -> String {
         self.description
             .iter()
-            .flat_map(|desc| desc.split("\n"))
+            .flat_map(|desc| desc.split('\n'))
             .map(|desc| "///".to_owned() + desc)
             .join("\n")
     }

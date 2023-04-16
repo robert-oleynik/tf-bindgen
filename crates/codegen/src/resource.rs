@@ -76,7 +76,7 @@ impl Body {
                     let n = format!("{name}{}", aname.to_string().to_upper_camel_case());
                     let n = syn::Ident::new(&n, aname.span());
                     let aname = syn::Ident::new(&format!("{aname}{i}"), aname.span());
-                    Some((aname, body.to_tokens(n, &module)))
+                    Some((aname, body.to_tokens(n, module)))
                 }
                 _ => None,
             })
@@ -85,7 +85,7 @@ impl Body {
 
     fn to_tokens(&self, name: syn::Ident, module: &syn::Ident) -> TokenStream {
         let setter = self.to_setter_tokens();
-        let blocks = self.to_block_tokens(&name, &module);
+        let blocks = self.to_block_tokens(&name, module);
         quote::quote!(
             {
                 #( #blocks )*

@@ -42,10 +42,10 @@ impl Generator {
             Schema::V1_0 { provider_schemas } => provider_schemas
                 .iter()
                 .map(|(url, schema)| {
-                    let name = url.split("/").last().unwrap();
+                    let name = url.split('/').last().unwrap();
                     let version = versions
                         .iter()
-                        .find(|(n, _)| n.split("/").last().unwrap() == name)
+                        .find(|(n, _)| n.split('/').last().unwrap() == name)
                         .unwrap()
                         .1
                         .comparators
