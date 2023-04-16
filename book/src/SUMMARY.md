@@ -10,6 +10,7 @@
 # Advanced
 
 - [Generate Rust Bindings](./advanced/generation.md)
+- [Improving Compile Duration](./advanced/improving_compile_duration.md)
 
 # Development
 
