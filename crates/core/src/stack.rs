@@ -3,8 +3,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use tf_schema::document::{Meta, Metadata, ProviderConfig, Terraform};
-use tf_schema::Document;
+use tf_bindgen_schema::document::{Meta, Metadata, ProviderConfig, Terraform};
+use tf_bindgen_schema::Document;
 
 use crate::{L1Construct, Path, Provider, Scope};
 
@@ -63,7 +63,7 @@ impl Stack {
                 metadata: Metadata {
                     backend: "local".to_string(),
                     stack_name: self.name().to_string(),
-                    version: tf_schema::VERSION.to_string(),
+                    version: tf_bindgen_schema::VERSION.to_string(),
                 },
                 outputs: HashMap::default(),
             },

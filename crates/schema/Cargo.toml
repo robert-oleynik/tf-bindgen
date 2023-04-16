@@ -1,7 +1,13 @@
 [package]
-name = "tf-schema"
+name = "tf-bindgen-schema"
 version = "0.1.0"
 edition = "2021"
+description = "Rust structures used to (de)serialize Terraform Provider and Config Schema."
+license = "BSD-3-Clause"
+repository = "https://github.com/robert-oleynik/tf-bindgen"
+readme = "../../README.md"
+keywords = ["tf-bindgen", "terraform", "serialization", "infrastructure"]
+categories = ["configuration", "encoding"]
 
 [dependencies]
 serde = { version = "1.0.152", features = ["derive"] }

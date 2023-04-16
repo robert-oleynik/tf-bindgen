@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use heck::ToUpperCamelCase;
 use itertools::Itertools;
 use semver::{Comparator, Op, VersionReq};
-use tf_schema::provider::v1_0::{Attribute, Block, BlockType, Type};
-use tf_schema::provider::Schema;
+use tf_bindgen_schema::provider::v1_0::{Attribute, Block, BlockType, Type};
+use tf_bindgen_schema::provider::Schema;
 
 use crate::codegen::type_info::TypeInfo;
 
@@ -18,8 +18,8 @@ pub mod path;
 pub mod struct_info;
 pub mod type_info;
 
-pub use tf_codegen::resource;
-pub use tf_codegen::Construct;
+pub use tf_bindgen_codegen::resource;
+pub use tf_bindgen_codegen::Construct;
 
 pub struct Generator {
     pub providers: Vec<Provider>,

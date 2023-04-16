@@ -319,23 +319,23 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "tf-cli",
- "tf-codegen",
- "tf-core",
- "tf-schema",
+ "tf-bindgen-cli",
+ "tf-bindgen-codegen",
+ "tf-bindgen-core",
+ "tf-bindgen-schema",
  "toml",
 ]
 
 [[package]]
-name = "tf-cli"
+name = "tf-bindgen-cli"
 version = "0.1.0"
 dependencies = [
  "serde_json",
- "tf-core",
+ "tf-bindgen-core",
 ]
 
 [[package]]
-name = "tf-codegen"
+name = "tf-bindgen-codegen"
 version = "0.1.0"
 dependencies = [
  "darling",
@@ -345,15 +345,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "tf-core"
+name = "tf-bindgen-core"
 version = "0.1.0"
 dependencies = [
  "sha1",
- "tf-schema",
+ "tf-bindgen-schema",
 ]
 
 [[package]]
-name = "tf-schema"
+name = "tf-bindgen-schema"
 version = "0.1.0"
 dependencies = [
  "serde",

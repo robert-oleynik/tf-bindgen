@@ -1,5 +1,5 @@
 use heck::ToUpperCamelCase;
-use tf_schema::provider::v1_0::BlockType;
+use tf_bindgen_schema::provider::v1_0::BlockType;
 
 use super::path::Path;
 

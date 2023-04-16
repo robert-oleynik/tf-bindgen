@@ -8,15 +8,15 @@ use std::collections::HashMap;
 
 use codegen::Generator;
 use semver::VersionReq;
-use tf_schema::provider;
+use tf_bindgen_schema::provider;
 
-pub use tf_core::*;
+pub use tf_bindgen_core::*;
 
 pub use crate::builder::Builder;
 pub use serde;
 pub use serde_json as json;
-pub use tf_cli as cli;
-pub use tf_schema as schema;
+pub use tf_bindgen_cli as cli;
+pub use tf_bindgen_schema as schema;
 
 pub use value::Value;
 

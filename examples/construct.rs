@@ -2,9 +2,9 @@ use std::rc::Rc;
 
 #[derive(::tf_bindgen::codegen::Construct)]
 pub struct Custom {
-    #[scope]
+    #[construct(scope)]
     __m_scope: Rc<dyn ::tf_bindgen::Scope>,
-    #[id]
+    #[construct(id)]
     __m_name: String,
 }
 

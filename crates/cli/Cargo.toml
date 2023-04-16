@@ -1,8 +1,14 @@
 [package]
-name = "tf-cli"
+name = "tf-bindgen-cli"
 version = "0.1.0"
 edition = "2021"
+description = "Wrapper around Terraform to improve usage with tf-bindgen."
+license = "BSD-3-Clause"
+repository = "https://github.com/robert-oleynik/tf-bindgen"
+readme = "../../README.md"
+keywords = ["tf-bindgen", "terraform", "cli", "infrastructure"]
+categories = ["configuration", "command-line-utilities"]
 
 [dependencies]
 serde_json = "1.0.95"
-tf-core = { path = "../core", version = "0.1.0" }
+tf-bindgen-core = { path = "../core", version = "0.1.0" }

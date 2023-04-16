@@ -2,6 +2,11 @@
 name = "tf-bindgen"
 version = "0.1.0"
 edition = "2021"
+description = "Automatically generates Rust bindings for Terraform providers."
+license = "BSD-3-Clause"
+repository = "https://github.com/robert-oleynik/tf-bindgen"
+keywords = ["tf-bindgen", "terraform", "infrastructure", "code-generation", "bindings"]
+categories = ["configuration", "external-ffi-bindings", "development-tools::ffi"]
 
 [workspace]
 members = [
@@ -13,14 +18,14 @@ members = [
 
 [dependencies]
 anyhow = "1.0.69"
-tf-cli = { path = "crates/cli", version = "0.1.0" }
-tf-codegen = { path = "crates/codegen", version = "0.1.0" }
-tf-core = { path = "crates/core", version = "0.1.0" }
 heck = "0.4.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.95"
+tf-bindgen-cli = { path = "crates/cli", version = "0.1.0" }
+tf-bindgen-codegen = { path = "crates/codegen", version = "0.1.0" }
+tf-bindgen-core = { path = "crates/core", version = "0.1.0" }
+tf-bindgen-schema = { path = "crates/schema", version = "0.1.0" }
 toml = "0.7.2"
-tf-schema = { path = "crates/schema", version = "0.1.0" }
 semver = "1.0.16"
 itertools = "0.10.5"
 derive_builder = "0.12.0"

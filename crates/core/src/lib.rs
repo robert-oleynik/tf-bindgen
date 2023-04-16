@@ -1,7 +1,7 @@
 mod path;
 mod stack;
 
-use ::tf_schema::document::Resource;
+use ::tf_bindgen_schema::document::Resource;
 
 pub use crate::path::Path;
 pub use crate::stack::Stack;
@@ -21,5 +21,5 @@ pub trait L1Construct: Scope {
 
 pub trait Provider: Scope {
     /// Returns the provider version and configuration.
-    fn to_schema(&self) -> (String, tf_schema::document::Provider);
+    fn to_schema(&self) -> (String, tf_bindgen_schema::document::Provider);
 }

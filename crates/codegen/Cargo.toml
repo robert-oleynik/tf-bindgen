@@ -1,7 +1,13 @@
 [package]
-name = "tf-codegen"
+name = "tf-bindgen-codegen"
 version = "0.1.0"
 edition = "2021"
+description = "A collection of proc-macros to improve tf-bindgen code."
+license = "BSD-3-Clause"
+repository = "https://github.com/robert-oleynik/tf-bindgen"
+readme = "../../README.md"
+keywords = ["tf-bindgen", "terraform", "macros"]
+categories = ["configuration"]
 
 [lib]
 proc-macro = true

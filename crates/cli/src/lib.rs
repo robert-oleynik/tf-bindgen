@@ -1,6 +1,6 @@
 use serde_json::Value;
 use std::process::Command;
-use tf_core::Stack;
+use tf_bindgen_core::Stack;
 
 const PATH: &str = "target/stacks/";
 
