@@ -6,7 +6,7 @@ description = "Automatically generates Rust bindings for Terraform providers."
 license = "BSD-3-Clause"
 repository = "https://github.com/robert-oleynik/tf-bindgen"
 keywords = ["tf-bindgen", "terraform", "infrastructure", "code-generation", "bindings"]
-categories = ["configuration", "external-ffi-bindings", "development-tools::ffi"]
+categories = ["config", "external-ffi-bindings", "development-tools::ffi"]
 
 [workspace]
 members = [

@@ -7,7 +7,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/robert-oleynik/tf-bindgen"
 readme = "../../README.md"
 keywords = ["tf-bindgen", "terraform", "cli", "infrastructure"]
-categories = ["configuration", "command-line-utilities"]
+categories = ["config", "command-line-utilities"]
 
 [dependencies]
 serde_json = "1.0.95"

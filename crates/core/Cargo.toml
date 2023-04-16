@@ -7,7 +7,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/robert-oleynik/tf-bindgen"
 readme = "../../README.md"
 keywords = ["tf-bindgen"]
-categories = ["configuration"]
+categories = ["config"]
 
 [dependencies]
 sha1 = "0.10.5"

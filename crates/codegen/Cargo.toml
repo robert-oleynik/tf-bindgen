@@ -7,7 +7,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/robert-oleynik/tf-bindgen"
 readme = "../../README.md"
 keywords = ["tf-bindgen", "terraform", "macros"]
-categories = ["configuration"]
+categories = ["config"]
 
 [lib]
 proc-macro = true
