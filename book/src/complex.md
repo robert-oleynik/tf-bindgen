@@ -35,8 +35,8 @@ resource "kubernetes_pod" "nginx" {
 Similar to the docker example in the previous section, we need to add our dependencies:
 
 ```sh
-cargo add --git https://github.com/robert-oleynik/tf-bindgen
-cargo add --git https://github.com/robert-oleynik/tf-kubernetes
+cargo add tf-bindgen
+cargo add tf-kubernetes
 ```
 
 In this case, we will use the Kubernetes bindings instead of the Docker bindings. We also will start similar to the docker example by setting up our stack and Kubernetes provider:

@@ -30,8 +30,8 @@ resource "docker_container" "postgres" {
 Before we start, we need to prepare our setup by adding the required dependencies:
 
 ```sh
-cargo add --git https://github.com/robert-oleynik/tf-bindgen
-cargo add --git https://github.com/robert-oleynik/tf-docker
+cargo add tf-bindgen
+cargo add tf-docker
 ```
 
 For this section, we will not deal with generating our own bindings, but use some existing ones. If you are interested in this topic, you can read about it in [Generating Rust Bindings](./advanced/generation.md).

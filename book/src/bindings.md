@@ -4,7 +4,7 @@ The following table contains a list of crates found at [crates.io](https://crate
 
 | Crate                       | Terraform Provider | Provider Version |
 | --------------------------- | ------------------ | ---------------- |
-| [tf-kubernetes] ![official] | [kubernetes]       | 2.18.1           |
+| [tf-kubernetes] ![official] | [kubernetes]       | 2.19.0           |
 | [tf-docker] ![official]     | [docker]           | 3.0.2            |
 
 [kubernetes]: https://registry.terraform.io/providers/hashicorp/kubernetes/2.18.1
