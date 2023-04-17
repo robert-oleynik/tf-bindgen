@@ -58,6 +58,10 @@ fn init() -> Stack {
 
 See [Documentation](https://robert-oleynik.github.io/tf-bindgen/introduction.html) for a full introduction into `tf-bindgen`.
 
+## Examples
+
+For a list of examples, see the [Examples](https://robert-oleynik.github.io/tf-bindgen/examples.html) section of the documentation.
+
 ## Issues
 
 ### Compile Performance
